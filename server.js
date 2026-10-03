@@ -353,6 +353,11 @@ async function handleApi(request, response, pathname, searchParams, context) {
 // ---------------------------------------------------------------------------
 const LOOPBACK = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
 
+// *.localhost always resolves to loopback, so it is as safe as localhost itself.
+function isLoopbackHost(hostname) {
+  return LOOPBACK.has(hostname) || hostname.endsWith('.localhost');
+}
+
 function hostnameOf(hostHeader) {
   if (!hostHeader) return '';
   try {
@@ -379,7 +384,7 @@ export function createApp(config = {}) {
 
   const server = http.createServer(async (request, response) => {
     try {
-      if (checkHost && !LOOPBACK.has(hostnameOf(request.headers.host))) {
+      if (checkHost && !isLoopbackHost(hostnameOf(request.headers.host))) {
         throw new HttpError(403, 'Unexpected Host header');
       }
       const origin = request.headers.origin;

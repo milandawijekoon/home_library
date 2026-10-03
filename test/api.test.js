@@ -248,6 +248,14 @@ test('request hardening: content type, size, bad JSON, methods, host, origin', a
     request.end();
   });
   assert.equal(status, 403);
+  // ...but *.localhost names always resolve to loopback, so they are allowed.
+  for (const [host, expected] of [['home-library.localhost:47321', 200], ['evil.localhost.example.com', 403]]) {
+    const result = await new Promise((resolve) => {
+      const request = http.request({ host: '127.0.0.1', port: new URL(base).port, path: '/api/books', headers: { Host: host } }, (response) => { response.resume(); resolve(response.statusCode); });
+      request.end();
+    });
+    assert.equal(result, expected, host);
+  }
 });
 
 test('static files: served, SPA root, no traversal, no dotfiles, no data dir', async () => {
