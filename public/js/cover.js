@@ -13,7 +13,7 @@ import { describeCameraError, ScannerError } from './scanner.js';
 import { detectBook, cornerShift, coverOutputSize, uprightCorners, warpQuad } from './detect.js';
 
 const CHOOSE = 'Use "Choose photo" instead: on a phone it opens your camera app or photo library.';
-const lower = (s) => s.charAt(0).toLowerCase() + s.slice(1);
+const lower = (text) => text.charAt(0).toLowerCase() + text.slice(1);
 const CAMERA_MESSAGES = {
   permission: `Camera access was blocked. Allow it for this site in your browser settings, or ${lower(CHOOSE)}`,
   'no-camera': `No camera was found on this device. ${CHOOSE}`,
@@ -46,9 +46,9 @@ function readAutoPref() {
   }
 }
 
-function writeAutoPref(on) {
+function writeAutoPref(enabled) {
   try {
-    localStorage.setItem(AUTO_KEY, on ? 'on' : 'off');
+    localStorage.setItem(AUTO_KEY, enabled ? 'on' : 'off');
   } catch {
     /* preference just won't persist */
   }
@@ -92,26 +92,26 @@ function clearOverlay() {
 /** Detect a book in any canvas / video frame. Corners come back in the source's pixels. */
 function detectIn(source, width, height) {
   const scale = DETECT_WIDTH / width;
-  const w = DETECT_WIDTH;
-  const h = Math.max(32, Math.round(height * scale));
+  const detectWidth = DETECT_WIDTH;
+  const detectHeight = Math.max(32, Math.round(height * scale));
   const small = detectIn.canvas ?? (detectIn.canvas = document.createElement('canvas'));
-  small.width = w;
-  small.height = h;
-  const ctx = small.getContext('2d', { willReadFrequently: true });
-  ctx.drawImage(source, 0, 0, w, h);
-  const found = detectBook(ctx.getImageData(0, 0, w, h));
+  small.width = detectWidth;
+  small.height = detectHeight;
+  const context = small.getContext('2d', { willReadFrequently: true });
+  context.drawImage(source, 0, 0, detectWidth, detectHeight);
+  const found = detectBook(context.getImageData(0, 0, detectWidth, detectHeight));
   if (!found) return null;
-  const sx = width / w;
-  const sy = height / h;
-  return { ...found, corners: found.corners.map((p) => ({ x: p.x * sx, y: p.y * sy })) };
+  const scaleX = width / detectWidth;
+  const scaleY = height / detectHeight;
+  return { ...found, corners: found.corners.map((corner) => ({ x: corner.x * scaleX, y: corner.y * scaleY })) };
 }
 
 /** Flatten the quad in `canvas` into an upright cover picture. */
 function straighten(canvas, corners) {
   const upright = uprightCorners(corners);
   const { width, height } = coverOutputSize(upright, OUTPUT_MAX_SIDE);
-  const src = canvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, canvas.width, canvas.height);
-  const flat = warpQuad(src, upright, width, height);
+  const source = canvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, canvas.width, canvas.height);
+  const flat = warpQuad(source, upright, width, height);
   const out = document.createElement('canvas');
   out.width = width;
   out.height = height;
@@ -148,7 +148,7 @@ function enterCrop(canvas, corners, note) {
 // ---------------------------------------------------------------------------
 function stopCamera() {
   session++;
-  stream?.getTracks().forEach((t) => t.stop());
+  stream?.getTracks().forEach((track) => track.stop());
   stream = null;
   video.pause();
   video.srcObject = null;
@@ -159,39 +159,39 @@ function stopCamera() {
 }
 
 /** Map a point in video pixels to the overlay canvas (the video is shown with object-fit: cover). */
-function videoToOverlay(p) {
-  const cw = overlay.clientWidth;
-  const ch = overlay.clientHeight;
-  const scale = Math.max(cw / video.videoWidth, ch / video.videoHeight);
-  return { x: p.x * scale + (cw - video.videoWidth * scale) / 2, y: p.y * scale + (ch - video.videoHeight * scale) / 2 };
+function videoToOverlay(point) {
+  const clientWidth = overlay.clientWidth;
+  const clientHeight = overlay.clientHeight;
+  const scale = Math.max(clientWidth / video.videoWidth, clientHeight / video.videoHeight);
+  return { x: point.x * scale + (clientWidth - video.videoWidth * scale) / 2, y: point.y * scale + (clientHeight - video.videoHeight * scale) / 2 };
 }
 
 function drawOutline(corners, progress) {
-  const dpr = window.devicePixelRatio || 1;
-  const cw = overlay.clientWidth;
-  const ch = overlay.clientHeight;
-  if (overlay.width !== Math.round(cw * dpr) || overlay.height !== Math.round(ch * dpr)) {
-    overlay.width = Math.round(cw * dpr);
-    overlay.height = Math.round(ch * dpr);
+  const pixelRatio = window.devicePixelRatio || 1;
+  const clientWidth = overlay.clientWidth;
+  const clientHeight = overlay.clientHeight;
+  if (overlay.width !== Math.round(clientWidth * pixelRatio) || overlay.height !== Math.round(clientHeight * pixelRatio)) {
+    overlay.width = Math.round(clientWidth * pixelRatio);
+    overlay.height = Math.round(clientHeight * pixelRatio);
   }
-  const ctx = overlay.getContext('2d');
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.clearRect(0, 0, cw, ch);
+  const context = overlay.getContext('2d');
+  context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+  context.clearRect(0, 0, clientWidth, clientHeight);
   if (!corners) return;
-  const pts = corners.map(videoToOverlay);
-  ctx.beginPath();
-  pts.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
-  ctx.closePath();
-  ctx.fillStyle = `rgb(61 220 132 / ${0.12 + 0.18 * progress})`;
-  ctx.fill();
-  ctx.lineWidth = 3;
-  ctx.strokeStyle = progress >= 1 ? '#ffffff' : '#3ddc84';
-  ctx.stroke();
-  ctx.fillStyle = '#3ddc84';
-  for (const p of pts) {
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
-    ctx.fill();
+  const points = corners.map(videoToOverlay);
+  context.beginPath();
+  points.forEach((point, pointIndex) => (pointIndex ? context.lineTo(point.x, point.y) : context.moveTo(point.x, point.y)));
+  context.closePath();
+  context.fillStyle = `rgb(61 220 132 / ${0.12 + 0.18 * progress})`;
+  context.fill();
+  context.lineWidth = 3;
+  context.strokeStyle = progress >= 1 ? '#ffffff' : '#3ddc84';
+  context.stroke();
+  context.fillStyle = '#3ddc84';
+  for (const point of points) {
+    context.beginPath();
+    context.arc(point.x, point.y, 5, 0, Math.PI * 2);
+    context.fill();
   }
 }
 
@@ -266,16 +266,16 @@ async function startCamera() {
     return;
   }
   try {
-    const s = await navigator.mediaDevices.getUserMedia({
+    const mediaStream = await navigator.mediaDevices.getUserMedia({
       audio: false,
       video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
     });
     if (mine !== session) {
-      s.getTracks().forEach((t) => t.stop());
+      mediaStream.getTracks().forEach((track) => track.stop());
       return;
     }
-    stream = s;
-    video.srcObject = s;
+    stream = mediaStream;
+    video.srcObject = mediaStream;
     await video.play();
     if (mine !== session) return;
     $('#cover-camera').classList.add('is-live');
@@ -299,8 +299,8 @@ function capture(corners) {
   if (!stream || !video.videoWidth) return;
   const frame = drawToCanvas(video, video.videoWidth, video.videoHeight);
   // frame may have been shrunk relative to the video; scale the outline to match
-  const k = frame.width / video.videoWidth;
-  const scaled = corners ? corners.map((p) => ({ x: p.x * k, y: p.y * k })) : null;
+  const ratio = frame.width / video.videoWidth;
+  const scaled = corners ? corners.map((corner) => ({ x: corner.x * ratio, y: corner.y * ratio })) : null;
   stopCamera();
   enterCrop(frame, scaled, scaled ? 'Captured automatically and straightened. Fine-tune below if needed.' : null);
 }
@@ -354,18 +354,18 @@ export function initCoverCapture() {
   session = 0;
   const zoom = $('#cover-zoom');
   zoom.max = String(MAX_ZOOM);
-  cropper = new Cropper(stage, { onZoom: (z) => (zoom.value = String(z)) });
+  cropper = new Cropper(stage, { onZoom: (zoomLevel) => (zoom.value = String(zoomLevel)) });
 
   $('#cover-auto').checked = readAutoPref();
-  $('#cover-auto').addEventListener('change', (e) => {
-    writeAutoPref(e.target.checked);
-    $('#cover-camera').classList.toggle('is-auto', e.target.checked);
+  $('#cover-auto').addEventListener('change', (event) => {
+    writeAutoPref(event.target.checked);
+    $('#cover-camera').classList.toggle('is-auto', event.target.checked);
     if (stream) {
-      $('#cover-status').textContent = e.target.checked
+      $('#cover-status').textContent = event.target.checked
         ? 'Looking for a book… hold it upright (portrait), cover facing the camera.'
         : 'Fill the frame with the front cover, then press Take photo.';
     }
-    if (!e.target.checked) {
+    if (!event.target.checked) {
       clearOverlay();
       setProgress(0);
     }
@@ -374,14 +374,14 @@ export function initCoverCapture() {
   zoom.addEventListener('input', () => cropper.setZoom(Number(zoom.value)));
   $('#cover-shoot').addEventListener('click', takePhoto);
   $('#cover-choose').addEventListener('click', () => $('#cover-file').click());
-  $('#cover-file').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    e.target.value = '';
+  $('#cover-file').addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    event.target.value = '';
     if (file) useBlob(file);
   });
   $('#cover-rotate').addEventListener('click', () => cropper.rotate());
-  $('#cover-original').addEventListener('click', (e) => {
-    const button = e.currentTarget;
+  $('#cover-original').addEventListener('click', (event) => {
+    const button = event.currentTarget;
     const showOriginal = button.dataset.mode === 'straightened';
     cropper.setSource(showOriginal ? original : straightened);
     button.dataset.mode = showOriginal ? 'original' : 'straightened';
@@ -425,8 +425,8 @@ export function initCoverCapture() {
       showError(err.message);
     }
   });
-  dialog.addEventListener('click', (e) => {
-    if (e.target.closest('[data-close]')) finish(null);
+  dialog.addEventListener('click', (event) => {
+    if (event.target.closest('[data-close]')) finish(null);
   });
   dialog.addEventListener('cancel', () => finish(null)); // Esc
   dialog.addEventListener('close', () => {

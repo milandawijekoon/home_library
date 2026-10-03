@@ -281,8 +281,9 @@
       "coverImage": "https://grantha.lk/media/catalog/product/cache/3c8129f5d0ba4d4250822c495b95f335/a/h/ahala_malata_dam_patak_01.jpg",
       "googleBooksId": "-g8D0QEACAAJ",
       "read": false,
+      "loans": [],
       "dateAdded": "2026-10-02T17:29:52.415Z",
-      "dateUpdated": "2026-10-02T19:36:16.029Z"
+      "dateUpdated": "2026-10-03T14:05:12.729Z"
     },
     {
       "id": "6573de93-f6f1-4d6c-9799-d369afef6799",
@@ -343,8 +344,15 @@
       "coverImage": "https://cms.sarasavi.lk/storage/product/6245579244.jpg",
       "googleBooksId": "wFDRzwEACAAJ",
       "read": true,
+      "loans": [
+        {
+          "borrower": "Sachu",
+          "dateBorrowed": "2026-10-03",
+          "dateReturned": "2026-10-03"
+        }
+      ],
       "dateAdded": "2026-10-02T17:32:24.815Z",
-      "dateUpdated": "2026-10-02T19:41:07.499Z"
+      "dateUpdated": "2026-10-03T12:13:48.860Z"
     },
     {
       "id": "a90f227b-3f17-48d0-92cf-a6be97a22bdf",

@@ -27,8 +27,8 @@ export class BookStore {
     this.queue = Promise.resolve();
   }
 
-  #locked(fn) {
-    const run = this.queue.then(fn);
+  #locked(operation) {
+    const run = this.queue.then(operation);
     this.queue = run.catch(() => {});
     return run;
   }
@@ -50,7 +50,7 @@ export class BookStore {
     }
     const books = Array.isArray(data) ? data : data?.books;
     if (!Array.isArray(books)) throw this.#corrupt('it has no "books" array');
-    return { books: books.filter((b) => b && typeof b === 'object' && !Array.isArray(b)) };
+    return { books: books.filter((storedBook) => storedBook && typeof storedBook === 'object' && !Array.isArray(storedBook)) };
   }
 
   #corrupt(reason) {
@@ -64,12 +64,12 @@ export class BookStore {
   }
 
   async #write(books) {
-    const dir = path.dirname(this.file);
-    await fs.mkdir(dir, { recursive: true });
-    const tmp = path.join(dir, `.${path.basename(this.file)}.${process.pid}.${randomUUID()}.tmp`);
+    const directory = path.dirname(this.file);
+    await fs.mkdir(directory, { recursive: true });
+    const scratch = path.join(directory, `.${path.basename(this.file)}.${process.pid}.${randomUUID()}.tmp`);
     const json = JSON.stringify({ books }, null, 2) + '\n';
     try {
-      const handle = await fs.open(tmp, 'w', 0o600);
+      const handle = await fs.open(scratch, 'w', 0o600);
       try {
         await handle.writeFile(json, 'utf8');
         await handle.sync();
@@ -79,9 +79,9 @@ export class BookStore {
       await fs.copyFile(this.file, `${this.file}.bak`).catch((err) => {
         if (err.code !== 'ENOENT') throw err;
       });
-      await fs.rename(tmp, this.file);
+      await fs.rename(scratch, this.file);
     } catch (err) {
-      await fs.rm(tmp, { force: true }).catch(() => {});
+      await fs.rm(scratch, { force: true }).catch(() => {});
       throw new StoreError(500, `Could not save ${path.basename(this.file)}: ${err.message}`);
     }
   }
@@ -105,41 +105,44 @@ export class BookStore {
 
   get(id) {
     return this.#locked(async () => {
-      const book = (await this.#read()).books.find((b) => b.id === id);
+      const book = (await this.#read()).books.find((storedBook) => storedBook.id === id);
       if (!book) throw new StoreError(404, 'Book not found');
       return book;
     });
   }
 
-  add(input) {
+  /** Sanitise `input`, then run `fn(value)` under the write lock. Invalid input rejects with a 400. */
+  #validated(input, operation) {
     const { value, errors } = sanitizeBook(input);
     if (errors.length) return Promise.reject(new StoreError(400, 'Invalid book', { details: errors }));
-    return this.#locked(async () => {
+    return this.#locked(() => operation(value));
+  }
+
+  add(input) {
+    return this.#validated(input, async (value) => {
       const { books } = await this.#read();
       const key = bookKey(value);
-      const existing = books.find((b) => bookKey(b) === key);
+      const existing = books.find((storedBook) => bookKey(storedBook) === key);
       if (existing) {
         throw new StoreError(409, 'A book with this ISBN is already in your library', { existing });
       }
       const now = new Date().toISOString();
-      const ids = new Set(books.map((b) => b.id));
+      const ids = new Set(books.map((storedBook) => storedBook.id));
       let id = randomUUID();
       while (ids.has(id)) id = randomUUID();
-      const book = { id, ...value, dateAdded: now, dateUpdated: now };
+      const book = { id, ...value, loans: value.loans ?? [], dateAdded: now, dateUpdated: now };
       await this.#write([...books, book]);
       return book;
     });
   }
 
   update(id, input) {
-    const { value, errors } = sanitizeBook(input);
-    if (errors.length) return Promise.reject(new StoreError(400, 'Invalid book', { details: errors }));
-    return this.#locked(async () => {
+    return this.#validated(input, async (value) => {
       const { books } = await this.#read();
-      const index = books.findIndex((b) => b.id === id);
+      const index = books.findIndex((storedBook) => storedBook.id === id);
       if (index === -1) throw new StoreError(404, 'Book not found');
       const key = bookKey(value);
-      const clash = books.find((b, i) => i !== index && bookKey(b) === key);
+      const clash = books.find((storedBook, otherIndex) => otherIndex !== index && bookKey(storedBook) === key);
       if (clash) {
         throw new StoreError(409, 'Another book in your library already has this ISBN', { existing: clash });
       }
@@ -147,6 +150,8 @@ export class BookStore {
       const updated = {
         id: old.id,
         ...value,
+        // Callers that don't send `loans` (e.g. the edit form) keep the existing history.
+        loans: value.loans ?? (Array.isArray(old.loans) ? old.loans : []),
         dateAdded: cleanTimestamp(old.dateAdded) || new Date().toISOString(),
         dateUpdated: new Date().toISOString(),
       };
@@ -160,7 +165,7 @@ export class BookStore {
   remove(id) {
     return this.#locked(async () => {
       const { books } = await this.#read();
-      const index = books.findIndex((b) => b.id === id);
+      const index = books.findIndex((storedBook) => storedBook.id === id);
       if (index === -1) throw new StoreError(404, 'Book not found');
       const [removed] = books.splice(index, 1);
       await this.#write(books);
@@ -187,15 +192,15 @@ export class BookStore {
       const { books: current } = await this.#read();
       const base = mode === 'replace' ? [] : current;
       const keys = new Set(base.map(bookKey).filter(Boolean));
-      const ids = new Set(base.map((b) => b.id));
+      const ids = new Set(base.map((storedBook) => storedBook.id));
       const accepted = [];
       const invalid = [];
       let duplicates = 0;
 
-      rawBooks.forEach((raw, i) => {
+      rawBooks.forEach((raw, index) => {
         const { value, errors } = sanitizeBook(raw);
         if (errors.length) {
-          invalid.push({ index: i, title: typeof raw?.title === 'string' ? raw.title : '', errors });
+          invalid.push({ index: index, title: typeof raw?.title === 'string' ? raw.title : '', errors });
           return;
         }
         const key = bookKey(value);
@@ -212,6 +217,7 @@ export class BookStore {
         accepted.push({
           id,
           ...value,
+          loans: value.loans ?? [],
           dateAdded,
           dateUpdated: cleanTimestamp(raw.dateUpdated) || dateAdded,
         });

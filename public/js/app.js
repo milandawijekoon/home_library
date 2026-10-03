@@ -12,6 +12,7 @@ import {
   filterAndSort,
   findByIsbn,
   isRead,
+  currentLoan,
   languageName,
   loadPrefs,
   savePrefs,
@@ -28,6 +29,7 @@ import {
   renderBookCard,
   renderDetails,
   isCoverSource,
+  formatDay,
   PLACEHOLDER_COVER,
 } from './ui.js';
 
@@ -53,11 +55,11 @@ function showSkeleton() {
   $('#results-summary').textContent = 'Loading your library…';
 }
 
-function setSelectOptions(select, allLabel, values, labelFor = (v) => v) {
+function setSelectOptions(select, allLabel, values, labelFor = (value) => value) {
   const current = select.value;
   clear(select).append(
     el('option', { value: '', text: allLabel }),
-    ...values.map((v) => el('option', { value: v, text: labelFor(v) })),
+    ...values.map((value) => el('option', { value: value, text: labelFor(value) })),
   );
   select.value = values.includes(current) ? current : '';
   return select.value;
@@ -125,6 +127,7 @@ function render() {
   libraryEl.removeAttribute('aria-busy');
 
   const readCount = state.books.filter(isRead).length;
+  const lentCount = state.books.filter((book) => currentLoan(book)).length;
   const visible = filterAndSort(state.books, state);
   clear(libraryEl).append(...visible.map((book) => renderBookCard(book, { onOpen: openDetails })));
 
@@ -137,7 +140,7 @@ function render() {
       ? ''
       : hasActiveFilters()
         ? `Showing ${visible.length} of ${total} ${total === 1 ? 'book' : 'books'}`
-        : `${readCount} read · ${total - readCount} not read yet`;
+        : `${readCount} read · ${total - readCount} not read yet${lentCount ? ` · ${lentCount} lent out` : ''}`;
 }
 
 async function loadBooks() {
@@ -160,18 +163,18 @@ async function loadBooks() {
 // Toolbar
 // ---------------------------------------------------------------------------
 let searchTimer;
-$('#search').addEventListener('input', (e) => {
+$('#search').addEventListener('input', (event) => {
   clearTimeout(searchTimer);
   searchTimer = setTimeout(() => {
-    state.query = e.target.value;
+    state.query = event.target.value;
     render();
   }, 120);
 });
-$('#filter-category').addEventListener('change', (e) => { state.category = e.target.value; render(); });
-$('#filter-language').addEventListener('change', (e) => { state.language = e.target.value; render(); });
-$('#filter-status').addEventListener('change', (e) => { state.status = e.target.value; render(); });
-$('#sort-by').addEventListener('change', (e) => {
-  state.sortBy = e.target.value;
+$('#filter-category').addEventListener('change', (event) => { state.category = event.target.value; render(); });
+$('#filter-language').addEventListener('change', (event) => { state.language = event.target.value; render(); });
+$('#filter-status').addEventListener('change', (event) => { state.status = event.target.value; render(); });
+$('#sort-by').addEventListener('change', (event) => {
+  state.sortBy = event.target.value;
   state.sortDir = SORT_FIELDS[state.sortBy].defaultDir;
   savePrefs(state);
   render();
@@ -202,6 +205,7 @@ function showDetails(book) {
   detailsBook = book;
   renderDetails($('#details-body'), book);
   $('#details-toggle-read').textContent = isRead(book) ? 'Mark as not read' : 'Mark as read';
+  $('#details-loan').textContent = currentLoan(book) ? 'Mark as returned' : 'Lend this book';
 }
 
 function openDetails(book) {
@@ -215,12 +219,81 @@ $('#details-toggle-read').addEventListener('click', async () => {
   setBusy(button, true);
   try {
     const saved = await api.update(book.id, { ...book, read: !isRead(book) });
-    state.books = state.books.map((b) => (b.id === saved.id ? saved : b));
+    state.books = state.books.map((existing) => (existing.id === saved.id ? saved : existing));
     showDetails(saved);
     render();
     toast(isRead(saved) ? `Marked “${saved.title}” as read.` : `Marked “${saved.title}” as not read.`, { type: 'success', timeout: 2500 });
   } catch (err) {
     toast(err.message, { type: 'error', timeout: 7000 });
+  } finally {
+    setBusy(button, false);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Lend / return
+// ---------------------------------------------------------------------------
+const loanDialog = $('#loan-dialog');
+const loanForm = $('#loan-form');
+
+function todayYmd() {
+  const now = new Date();
+  const pad = (number) => String(number).padStart(2, '0');
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
+function openLoanDialog(book) {
+  const loan = currentLoan(book);
+  const returning = Boolean(loan);
+  $('#loan-title').textContent = returning ? 'Mark as returned' : 'Lend this book';
+  $('#loan-summary').textContent = returning
+    ? `“${book.title}” is with ${loan.borrower} since ${formatDay(loan.dateBorrowed)}.`
+    : `“${book.title}”`;
+  $('#loan-borrower-field').hidden = returning;
+  $('#loan-borrower').value = '';
+  $('#loan-date-label').textContent = returning ? 'Date returned' : 'Date borrowed';
+  const date = $('#loan-date');
+  date.value = todayYmd();
+  date.max = todayYmd();
+  date.min = returning ? loan.dateBorrowed : '';
+  $('#loan-submit').textContent = returning ? 'Save return' : 'Save loan';
+  $('#loan-error').hidden = true;
+  openDialog(loanDialog);
+  (returning ? date : $('#loan-borrower')).focus();
+}
+
+$('#details-loan').addEventListener('click', () => openLoanDialog(detailsBook));
+
+loanForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const book = detailsBook;
+  const loan = currentLoan(book);
+  const date = $('#loan-date').value;
+  const borrower = $('#loan-borrower').value.trim();
+  const fail = (message) => {
+    $('#loan-error').textContent = message;
+    $('#loan-error').hidden = false;
+  };
+  if (!loan && !borrower) return fail('Enter who is borrowing the book.');
+  if (!date) return fail(loan ? 'Pick the date it was returned.' : 'Pick the date it was borrowed.');
+  if (date > todayYmd()) return fail('That date is in the future.');
+  if (loan && date < loan.dateBorrowed) return fail(`It cannot be returned before it was borrowed (${formatDay(loan.dateBorrowed)}).`);
+
+  const history = Array.isArray(book.loans) ? book.loans : [];
+  const loans = loan
+    ? [...history.slice(0, -1), { ...loan, dateReturned: date }]
+    : [...history, { borrower, dateBorrowed: date, dateReturned: '' }];
+  const button = $('#loan-submit');
+  setBusy(button, true);
+  try {
+    const saved = await api.update(book.id, { ...book, loans });
+    state.books = state.books.map((existing) => (existing.id === saved.id ? saved : existing));
+    loanDialog.close();
+    showDetails(saved);
+    render();
+    toast(loan ? `“${saved.title}” marked as returned.` : `“${saved.title}” lent to ${borrower}.`, { type: 'success', timeout: 3000 });
+  } catch (err) {
+    fail(err.details?.length ? err.details.join(' ') : err.message);
   } finally {
     setBusy(button, false);
   }
@@ -244,7 +317,7 @@ $('#details-delete').addEventListener('click', async () => {
   setBusy(button, true);
   try {
     await api.remove(book.id);
-    state.books = state.books.filter((b) => b.id !== book.id);
+    state.books = state.books.filter((existing) => existing.id !== book.id);
     detailsDialog.close();
     updateFacets();
     render();
@@ -271,7 +344,7 @@ const field = (name) => $(`#f-${name}`);
 let formState = { mode: 'add', id: null };
 
 function splitList(text) {
-  return [...new Set(text.split(',').map((s) => s.trim()).filter(Boolean))];
+  return [...new Set(text.split(',').map((part) => part.trim()).filter(Boolean))];
 }
 
 /** The cover photo taken in the app (an embedded image). It takes precedence over the link field. */
@@ -353,7 +426,7 @@ function showFormError(messages) {
   const box = clear($('#book-error'));
   const list = [].concat(messages);
   if (list.length === 1) box.textContent = list[0];
-  else box.append(el('ul', {}, list.map((m) => el('li', { text: m }))));
+  else box.append(el('ul', {}, list.map((message) => el('li', { text: message }))));
   box.hidden = false;
   box.scrollIntoView({ block: 'nearest' });
 }
@@ -373,13 +446,13 @@ function validateForm(data) {
 
 function updatePreview() {
   const data = readForm();
-  const img = $('#preview-cover');
-  const src = isCoverSource(data.coverImage) ? data.coverImage : PLACEHOLDER_COVER;
-  if (img.dataset.src !== src) {
-    img.dataset.src = src;
-    img.onerror = () => { img.onerror = null; img.src = PLACEHOLDER_COVER; };
-    img.referrerPolicy = 'no-referrer';
-    img.src = src;
+  const image = $('#preview-cover');
+  const source = isCoverSource(data.coverImage) ? data.coverImage : PLACEHOLDER_COVER;
+  if (image.dataset.src !== source) {
+    image.dataset.src = source;
+    image.onerror = () => { image.onerror = null; image.src = PLACEHOLDER_COVER; };
+    image.referrerPolicy = 'no-referrer';
+    image.src = source;
   }
   $('#preview-title').textContent = data.title || 'Untitled book';
   $('#preview-authors').textContent = data.authors.join(', ');
@@ -408,20 +481,20 @@ bookForm.addEventListener('input', updatePreview);
 
 // Fill in the other ISBN form automatically once one of them is valid.
 field('isbn13').addEventListener('change', () => {
-  const v = normalizeIsbn(field('isbn13').value);
-  field('isbn13').value = v;
-  if (isValidIsbn13(v) && !field('isbn10').value.trim()) field('isbn10').value = isbn13To10(v);
+  const normalized = normalizeIsbn(field('isbn13').value);
+  field('isbn13').value = normalized;
+  if (isValidIsbn13(normalized) && !field('isbn10').value.trim()) field('isbn10').value = isbn13To10(normalized);
 });
 field('isbn10').addEventListener('change', () => {
-  const v = normalizeIsbn(field('isbn10').value);
-  field('isbn10').value = v;
-  if (isValidIsbn10(v) && !field('isbn13').value.trim()) field('isbn13').value = isbn10To13(v);
+  const normalized = normalizeIsbn(field('isbn10').value);
+  field('isbn10').value = normalized;
+  if (isValidIsbn10(normalized) && !field('isbn13').value.trim()) field('isbn13').value = isbn10To13(normalized);
 });
 
 $('#book-lookup').addEventListener('click', async () => {
   const button = $('#book-lookup');
   const status = $('#book-lookup-status');
-  const isbn = [field('isbn13').value, field('isbn10').value].map(normalizeIsbn).find((v) => isValidIsbn13(v) || isValidIsbn10(v));
+  const isbn = [field('isbn13').value, field('isbn10').value].map(normalizeIsbn).find((candidate) => isValidIsbn13(candidate) || isValidIsbn10(candidate));
   if (!isbn) {
     showFieldError('isbn13', 'Enter a valid ISBN first.');
     field('isbn13').focus();
@@ -491,7 +564,7 @@ bookForm.addEventListener('submit', async (event) => {
   try {
     if (formState.mode === 'edit') {
       const saved = await api.update(formState.id, data);
-      state.books = state.books.map((b) => (b.id === saved.id ? saved : b));
+      state.books = state.books.map((existing) => (existing.id === saved.id ? saved : existing));
       bookDialog.close();
       updateFacets();
       render();
@@ -501,7 +574,7 @@ bookForm.addEventListener('submit', async (event) => {
       state.books = [...state.books, saved];
       bookDialog.close();
       updateFacets();
-      const hidden = filterAndSort(state.books, state).every((b) => b.id !== saved.id);
+      const hidden = filterAndSort(state.books, state).every((existing) => existing.id !== saved.id);
       if (hidden) clearFilters();
       render();
       toast(`Added “${saved.title}” to your library.`, { type: 'success' });
@@ -717,6 +790,7 @@ $('#scanner-manual-entry').addEventListener('click', (event) => {
 // ---------------------------------------------------------------------------
 setupDialog(scannerDialog, { backdropClose: false });
 setupDialog(bookDialog);
+setupDialog(loanDialog);
 setupDialog(detailsDialog, { backdropClose: true });
 setupDialog($('#confirm-dialog'));
 initCoverCapture();

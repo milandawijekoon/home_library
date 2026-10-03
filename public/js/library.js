@@ -54,23 +54,20 @@ export const api = {
   async remove(id) {
     await request('DELETE', `/api/books/${encodeURIComponent(id)}`);
   },
-  importBooks(books, { mode, dryRun }) {
-    return request('POST', '/api/import', { books, mode, dryRun });
-  },
 };
 
 // ---------------------------------------------------------------------------
 // Display helpers (tolerant of hand-edited books.json)
 // ---------------------------------------------------------------------------
 export function asList(value) {
-  if (Array.isArray(value)) return value.filter((v) => typeof v === 'string' && v.trim()).map((v) => v.trim());
+  if (Array.isArray(value)) return value.filter((entry) => typeof entry === 'string' && entry.trim()).map((entry) => entry.trim());
   if (typeof value === 'string' && value.trim()) return [value.trim()];
   return [];
 }
 
 export function findByIsbn(books, isbn) {
   const key = canonicalIsbn(isbn);
-  return key ? books.find((b) => bookKey(b) === key) || null : null;
+  return key ? books.find((book) => bookKey(book) === key) || null : null;
 }
 
 const languageNames = (() => {
@@ -143,34 +140,47 @@ const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'bas
 
 export const isRead = (book) => book?.read === true;
 
+/** The loan that has not been returned yet, or null when the book is on the shelf. */
+export function currentLoan(book) {
+  const loans = Array.isArray(book?.loans) ? book.loans : [];
+  const last = loans[loans.length - 1];
+  return last && !last.dateReturned ? last : null;
+}
+
+export const isLent = (book) => currentLoan(book) !== null;
+
 export function filterAndSort(books, { query = '', category = '', language = '', status = '', sortBy = 'dateAdded', sortDir = 'desc' }) {
   const tokens = query.toLowerCase().split(/\s+/).filter(Boolean);
-  const dir = sortDir === 'asc' ? 1 : -1;
+  const directionSign = sortDir === 'asc' ? 1 : -1;
   return books
-    .filter((b) => matchesQuery(b, tokens))
-    .filter((b) => !category || asList(b.categories).includes(category))
-    .filter((b) => !language || (b.language || '') === language)
-    .filter((b) => !status || (status === 'read') === isRead(b))
-    .sort((a, b) => {
-      const av = sortValue(a, sortBy);
-      const bv = sortValue(b, sortBy);
+    .filter((book) => matchesQuery(book, tokens))
+    .filter((book) => !category || asList(book.categories).includes(category))
+    .filter((book) => !language || (book.language || '') === language)
+    .filter((book) => {
+      if (!status) return true;
+      if (status === 'lent') return isLent(book);
+      return (status === 'read') === isRead(book);
+    })
+    .sort((first, second) => {
+      const firstValue = sortValue(first, sortBy);
+      const secondValue = sortValue(second, sortBy);
       // Books missing the sort value always go last, whichever direction is chosen.
-      if (!av !== !bv) return av ? -1 : 1;
-      const cmp = sortBy === 'dateAdded' || sortBy === 'publishedDate' ? (av < bv ? -1 : av > bv ? 1 : 0) : collator.compare(av, bv);
-      return cmp * dir || collator.compare(a.title || '', b.title || '');
+      if (!firstValue !== !secondValue) return firstValue ? -1 : 1;
+      const cmp = sortBy === 'dateAdded' || sortBy === 'publishedDate' ? (firstValue < secondValue ? -1 : firstValue > secondValue ? 1 : 0) : collator.compare(firstValue, secondValue);
+      return cmp * directionSign || collator.compare(first.title || '', second.title || '');
     });
 }
 
 export function collectFacets(books) {
   const categories = new Set();
   const languages = new Set();
-  for (const b of books) {
-    asList(b.categories).forEach((c) => categories.add(c));
-    if (b.language) languages.add(b.language);
+  for (const book of books) {
+    asList(book.categories).forEach((category) => categories.add(category));
+    if (book.language) languages.add(book.language);
   }
   return {
     categories: [...categories].sort(collator.compare),
-    languages: [...languages].sort((a, b) => collator.compare(languageName(a), languageName(b))),
+    languages: [...languages].sort((first, second) => collator.compare(languageName(first), languageName(second))),
   };
 }
 

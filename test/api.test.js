@@ -6,77 +6,77 @@ import os from 'node:os';
 import path from 'node:path';
 import { createApp } from '../server.js';
 
-let tmp, app, base, upstream, upstreamBase, upstreamMode, olUpstream, olMode;
+let scratch, app, base, upstream, upstreamBase, upstreamMode, olUpstream, olMode;
 
 const listen = (server) =>
   new Promise((resolve) => server.listen(0, '127.0.0.1', () => resolve(server.address().port)));
 
 async function api(method, url, body, headers = {}) {
-  const res = await fetch(base + url, {
+  const response = await fetch(base + url, {
     method,
     headers: body === undefined ? headers : { 'Content-Type': 'application/json', ...headers },
     body: body === undefined ? undefined : typeof body === 'string' ? body : JSON.stringify(body),
   });
-  const text = await res.text();
+  const text = await response.text();
   let json = null;
   try { json = JSON.parse(text); } catch { /* not json */ }
-  return { status: res.status, json, text, headers: res.headers };
+  return { status: response.status, json, text, headers: response.headers };
 }
 
 const matilda = { isbn13: '9780140328721', title: 'Matilda', authors: ['Roald Dahl'], publisher: 'Puffin' };
 
 before(async () => {
-  tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'home_library-test-'));
-  upstream = http.createServer((req, res) => {
-    const u = new URL(req.url, 'http://x');
-    if (upstreamMode === 'rate-limit') { res.writeHead(429); return res.end('{}'); }
-    if (upstreamMode === 'error') { res.writeHead(500); return res.end('boom'); }
+  scratch = await fs.mkdtemp(path.join(os.tmpdir(), 'home_library-test-'));
+  upstream = http.createServer((request, response) => {
+    const requestUrl = new URL(request.url, 'http://x');
+    if (upstreamMode === 'rate-limit') { response.writeHead(429); return response.end('{}'); }
+    if (upstreamMode === 'error') { response.writeHead(500); return response.end('boom'); }
     // Fake viewapi: only the "hidden" book (which Google search cannot find) is known.
-    if (u.pathname === '/books') {
-      const keys = u.searchParams.get('bibkeys') || '';
+    if (requestUrl.pathname === '/books') {
+      const keys = requestUrl.searchParams.get('bibkeys') || '';
       const known = keys.includes('ISBN:9786245546732')
         ? { 'ISBN:9786245546732': { info_url: 'https://books.google.com/books?id=hidden123&source=gbs_ViewAPI' } }
         : keys.includes('ISBN:9786245546800')
           ? { 'ISBN:9786245546800': { info_url: 'https://books.google.com/books?id=wrong123&source=gbs_ViewAPI' } }
           : {};
-      res.writeHead(200, { 'Content-Type': 'application/javascript' });
-      return res.end(`var _GBSBookInfo = ${JSON.stringify(known)};`);
+      response.writeHead(200, { 'Content-Type': 'application/javascript' });
+      return response.end(`var _GBSBookInfo = ${JSON.stringify(known)};`);
     }
     // Fake volume-by-id
-    const byId = u.pathname.match(/\/volumes\/([\w-]+)$/);
+    const byId = requestUrl.pathname.match(/\/volumes\/([\w-]+)$/);
     if (byId) {
       const vols = {
         hidden123: { id: 'hidden123', volumeInfo: { title: 'Hidden Book', language: 'si', industryIdentifiers: [{ type: 'ISBN_10', identifier: '6245546737' }, { type: 'ISBN_13', identifier: '9786245546732' }] } },
         wrong123: { id: 'wrong123', volumeInfo: { title: 'Some other edition', industryIdentifiers: [{ type: 'ISBN_13', identifier: '9780306406157' }] } },
       };
-      res.writeHead(vols[byId[1]] ? 200 : 404, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify(vols[byId[1]] || {}));
+      response.writeHead(vols[byId[1]] ? 200 : 404, { 'Content-Type': 'application/json' });
+      return response.end(JSON.stringify(vols[byId[1]] || {}));
     }
-    const q = u.searchParams.get('q');
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    if (q === 'isbn:9780140328721') {
-      return res.end(JSON.stringify({ items: [{ id: 'abc', volumeInfo: { title: 'Matilda' } }] }));
+    const query = requestUrl.searchParams.get('q');
+    response.writeHead(200, { 'Content-Type': 'application/json' });
+    if (query === 'isbn:9780140328721') {
+      return response.end(JSON.stringify({ items: [{ id: 'abc', volumeInfo: { title: 'Matilda' } }] }));
     }
-    res.end(JSON.stringify({ totalItems: 0 }));
+    response.end(JSON.stringify({ totalItems: 0 }));
   });
   upstreamBase = `http://127.0.0.1:${await listen(upstream)}/volumes`;
   // Fake Open Library: knows Matilda only when olMode === 'has'.
-  olUpstream = http.createServer((req, res) => {
-    if (olMode === 'error') { res.writeHead(500); return res.end('boom'); }
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    const bibkeys = new URL(req.url, 'http://x').searchParams.get('bibkeys') || '';
+  olUpstream = http.createServer((request, response) => {
+    if (olMode === 'error') { response.writeHead(500); return response.end('boom'); }
+    response.writeHead(200, { 'Content-Type': 'application/json' });
+    const bibkeys = new URL(request.url, 'http://x').searchParams.get('bibkeys') || '';
     if (olMode === 'has' && bibkeys.includes('ISBN:9780140328721')) {
-      return res.end(JSON.stringify({ 'ISBN:9780140328721': {
+      return response.end(JSON.stringify({ 'ISBN:9780140328721': {
         title: 'Matilda', authors: [{ name: 'Roald Dahl' }], publishers: [{ name: 'Puffin Books' }],
         publish_date: 'March 1, 1988', number_of_pages: 240, subjects: [{ name: 'Fiction' }],
         identifiers: { isbn_13: ['9780140328721'], isbn_10: ['0140328726'] },
         cover: { large: 'https://covers.openlibrary.org/b/id/1-L.jpg' },
       } }));
     }
-    res.end('{}');
+    response.end('{}');
   });
   const olBase = `http://127.0.0.1:${await listen(olUpstream)}/api/books`;
-  app = createApp({ dataFile: path.join(tmp, 'data', 'books.json'), googleBooksUrl: upstreamBase, googleViewApiUrl: upstreamBase.replace('/volumes', '/books'), openLibraryUrl: olBase });
+  app = createApp({ dataFile: path.join(scratch, 'data', 'books.json'), googleBooksUrl: upstreamBase, googleViewApiUrl: upstreamBase.replace('/volumes', '/books'), openLibraryUrl: olBase });
   await app.store.init();
   base = `http://127.0.0.1:${await listen(app.server)}`;
 });
@@ -85,7 +85,7 @@ after(async () => {
   app.server.close();
   upstream.close();
   olUpstream.close();
-  await fs.rm(tmp, { recursive: true, force: true });
+  await fs.rm(scratch, { recursive: true, force: true });
 });
 
 test('health check and empty library (file created on init)', async () => {
@@ -93,32 +93,32 @@ test('health check and empty library (file created on init)', async () => {
   assert.equal(health.status, 200);
   assert.equal(health.json.status, 'ok');
   assert.deepEqual((await api('GET', '/api/books')).json, { books: [] });
-  const file = JSON.parse(await fs.readFile(path.join(tmp, 'data', 'books.json'), 'utf8'));
+  const file = JSON.parse(await fs.readFile(path.join(scratch, 'data', 'books.json'), 'utf8'));
   assert.deepEqual(file, { books: [] });
 });
 
 let created;
 test('POST adds a book, derives the other ISBN form, sets ids and dates', async () => {
-  const res = await api('POST', '/api/books', matilda);
-  assert.equal(res.status, 201);
-  created = res.json.book;
+  const response = await api('POST', '/api/books', matilda);
+  assert.equal(response.status, 201);
+  created = response.json.book;
   assert.ok(created.id);
   assert.equal(created.isbn10, '0140328726');
   assert.equal(created.pageCount, null);
   assert.ok(created.dateAdded && created.dateUpdated);
-  const onDisk = JSON.parse(await fs.readFile(path.join(tmp, 'data', 'books.json'), 'utf8'));
+  const onDisk = JSON.parse(await fs.readFile(path.join(scratch, 'data', 'books.json'), 'utf8'));
   assert.equal(onDisk.books.length, 1);
 });
 
 test('duplicate ISBN is rejected (any form/format) and nothing is overwritten', async () => {
-  for (const dup of [
+  for (const isDuplicate of [
     { isbn13: '978-0-14-032872-1', title: 'Other title' },
     { isbn10: '0-14-032872-6', title: 'Other title' },
     { isbn: '0140328726', title: 'Other title' },
   ]) {
-    const res = await api('POST', '/api/books', dup);
-    assert.equal(res.status, 409, JSON.stringify(dup));
-    assert.equal(res.json.existing.title, 'Matilda');
+    const response = await api('POST', '/api/books', isDuplicate);
+    assert.equal(response.status, 409, JSON.stringify(isDuplicate));
+    assert.equal(response.json.existing.title, 'Matilda');
   }
   assert.equal((await api('GET', '/api/books')).json.books[0].title, 'Matilda');
 });
@@ -135,23 +135,23 @@ test('validation: checksums, required fields, types, unknown fields ignored', as
     [{ isbn13: '9780306406157', title: 'x'.repeat(301) }, /title/],
   ];
   for (const [payload, pattern] of bad) {
-    const res = await api('POST', '/api/books', payload);
-    assert.equal(res.status, 400, JSON.stringify(payload));
-    assert.match(res.json.details.join(' '), pattern);
+    const response = await api('POST', '/api/books', payload);
+    assert.equal(response.status, 400, JSON.stringify(payload));
+    assert.match(response.json.details.join(' '), pattern);
   }
-  const ok = await api('POST', '/api/books', {
+  const sanitizedResponse = await api('POST', '/api/books', {
     isbn13: '9780306406157', title: ' <b>Bold</b>  title ', id: 'hacker', dateAdded: '1999-01-01',
     coverImage: 'http://example.com/c.jpg', pageCount: '320', language: 'EN', extra: 1,
   });
-  assert.equal(ok.status, 201);
-  assert.notEqual(ok.json.book.id, 'hacker');
-  assert.notEqual(ok.json.book.dateAdded, '1999-01-01');
-  assert.equal(ok.json.book.title, '<b>Bold</b> title'); // stored verbatim; the UI renders as text
-  assert.equal(ok.json.book.coverImage, 'https://example.com/c.jpg');
-  assert.equal(ok.json.book.pageCount, 320);
-  assert.equal(ok.json.book.language, 'en');
-  assert.equal('extra' in ok.json.book, false);
-  await api('DELETE', `/api/books/${ok.json.book.id}`);
+  assert.equal(sanitizedResponse.status, 201);
+  assert.notEqual(sanitizedResponse.json.book.id, 'hacker');
+  assert.notEqual(sanitizedResponse.json.book.dateAdded, '1999-01-01');
+  assert.equal(sanitizedResponse.json.book.title, '<b>Bold</b> title'); // stored verbatim; the UI renders as text
+  assert.equal(sanitizedResponse.json.book.coverImage, 'https://example.com/c.jpg');
+  assert.equal(sanitizedResponse.json.book.pageCount, 320);
+  assert.equal(sanitizedResponse.json.book.language, 'en');
+  assert.equal('extra' in sanitizedResponse.json.book, false);
+  await api('DELETE', `/api/books/${sanitizedResponse.json.book.id}`);
 });
 
 test('GET one, PUT update, PUT clash, 404s', async () => {
@@ -179,15 +179,15 @@ test('read flag: defaults to false, can be set, toggled, and must be a boolean',
   const add = await api('POST', '/api/books', { isbn13: '9780201633610', title: 'Design Patterns' });
   assert.equal(add.json.book.read, false);
   const id = add.json.book.id;
-  const on = await api('PUT', `/api/books/${id}`, { ...add.json.book, read: true });
-  assert.equal(on.json.book.read, true);
+  const markedRead = await api('PUT', `/api/books/${id}`, { ...add.json.book, read: true });
+  assert.equal(markedRead.json.book.read, true);
   assert.equal((await api('GET', `/api/books/${id}`)).json.book.read, true);
   // an update that omits the field resets it rather than leaving stale data
   assert.equal((await api('PUT', `/api/books/${id}`, { isbn13: '9780201633610', title: 'Design Patterns' })).json.book.read, false);
   for (const bad of ['yes', 1, 'true', {}]) {
-    const res = await api('PUT', `/api/books/${id}`, { isbn13: '9780201633610', title: 'x', read: bad });
-    assert.equal(res.status, 400, String(bad));
-    assert.match(res.json.details.join(' '), /read must be true or false/);
+    const response = await api('PUT', `/api/books/${id}`, { isbn13: '9780201633610', title: 'x', read: bad });
+    assert.equal(response.status, 400, String(bad));
+    assert.match(response.json.details.join(' '), /read must be true or false/);
   }
   // import keeps the flag; books from older backups (no flag) come in as not read
   const imp = await api('POST', '/api/import', { books: [
@@ -196,9 +196,9 @@ test('read flag: defaults to false, can be set, toggled, and must be a boolean',
   ] });
   assert.equal(imp.json.added, 2);
   const books = (await api('GET', '/api/books')).json.books;
-  assert.equal(books.find((b) => b.title === 'JS Good Parts').read, true);
-  assert.equal(books.find((b) => b.title === 'Old backup entry').read, false);
-  for (const title of ['JS Good Parts', 'Old backup entry']) await api('DELETE', `/api/books/${books.find((b) => b.title === title).id}`);
+  assert.equal(books.find((book) => book.title === 'JS Good Parts').read, true);
+  assert.equal(books.find((book) => book.title === 'Old backup entry').read, false);
+  for (const title of ['JS Good Parts', 'Old backup entry']) await api('DELETE', `/api/books/${books.find((book) => book.title === title).id}`);
   await api('DELETE', `/api/books/${id}`);
 });
 
@@ -207,11 +207,11 @@ test('cover photos: small embedded JPEG/PNG/WebP accepted, everything else rejec
   const png = 'data:image/png;base64,' + Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47]), Buffer.alloc(100, 1)]).toString('base64');
   const post = (coverImage, isbn13 = '9780201633610') => api('POST', '/api/books', { isbn13, title: 'Photo book', coverImage });
 
-  const ok = await post(jpeg);
-  assert.equal(ok.status, 201);
-  assert.equal(ok.json.book.coverImage, jpeg); // stored verbatim, not mangled
-  assert.equal((await api('GET', `/api/books/${ok.json.book.id}`)).json.book.coverImage, jpeg);
-  await api('DELETE', `/api/books/${ok.json.book.id}`);
+  const uploadResponse = await post(jpeg);
+  assert.equal(uploadResponse.status, 201);
+  assert.equal(uploadResponse.json.book.coverImage, jpeg); // stored verbatim, not mangled
+  assert.equal((await api('GET', `/api/books/${uploadResponse.json.book.id}`)).json.book.coverImage, jpeg);
+  await api('DELETE', `/api/books/${uploadResponse.json.book.id}`);
   const okPng = await post(png);
   assert.equal(okPng.status, 201);
   await api('DELETE', `/api/books/${okPng.json.book.id}`);
@@ -225,9 +225,9 @@ test('cover photos: small embedded JPEG/PNG/WebP accepted, everything else rejec
     html: 'data:text/html;base64,PGgxPmhpPC9oMT4=',
   };
   for (const [name, value] of Object.entries(bad)) {
-    const res = await post(value);
-    assert.equal(res.status, 400, name);
-    assert.match(res.json.details.join(' '), /coverImage/, name);
+    const response = await post(value);
+    assert.equal(response.status, 400, name);
+    assert.match(response.json.details.join(' '), /coverImage/, name);
   }
 });
 
@@ -244,8 +244,8 @@ test('request hardening: content type, size, bad JSON, methods, host, origin', a
   assert.equal((await api('GET', '/api/books', undefined, { Origin: base })).status, 200);
   // Host header must be loopback (DNS rebinding) — raw request, since fetch forbids setting Host.
   const status = await new Promise((resolve) => {
-    const req = http.request({ host: '127.0.0.1', port: new URL(base).port, path: '/api/books', headers: { Host: 'evil.example' } }, (res) => { res.resume(); resolve(res.statusCode); });
-    req.end();
+    const request = http.request({ host: '127.0.0.1', port: new URL(base).port, path: '/api/books', headers: { Host: 'evil.example' } }, (response) => { response.resume(); resolve(response.statusCode); });
+    request.end();
   });
   assert.equal(status, 403);
 });
@@ -255,13 +255,13 @@ test('static files: served, SPA root, no traversal, no dotfiles, no data dir', a
   assert.equal(index.status, 200);
   assert.match(index.headers.get('content-security-policy'), /default-src 'self'/);
   for (const bad of ['/../server.js', '/%2e%2e/server.js', '/..%2fserver.js', '/data/books.json', '/../data/books.json', '/%00', '/js/', '/.env', '/node_modules/x']) {
-    const res = await fetch(base + bad);
-    assert.ok([400, 404].includes(res.status), `${bad} -> ${res.status}`);
+    const response = await fetch(base + bad);
+    assert.ok([400, 404].includes(response.status), `${bad} -> ${response.status}`);
   }
   // raw path traversal (fetch normalises ../ so use a socket-level request)
   const status = await new Promise((resolve) => {
-    const req = http.request({ host: '127.0.0.1', port: new URL(base).port, path: '/../server.js' }, (res) => { res.resume(); resolve(res.statusCode); });
-    req.end();
+    const request = http.request({ host: '127.0.0.1', port: new URL(base).port, path: '/../server.js' }, (response) => { response.resume(); resolve(response.statusCode); });
+    request.end();
   });
   assert.equal(status, 404);
   assert.equal((await fetch(base + '/vendor/zxing.min.js')).status, 200);
@@ -285,8 +285,8 @@ test('import: dry run, merge skips duplicates, invalid reported, replace keeps b
   assert.equal(merged.json.added, 1);
   const books = (await api('GET', '/api/books')).json.books;
   assert.equal(books.length, 2);
-  assert.equal(books.find((b) => b.isbn13 === matilda.isbn13).title, 'Matilda (2nd ed.)');
-  const imported = books.find((b) => b.id === 'keep-my-id');
+  assert.equal(books.find((book) => book.isbn13 === matilda.isbn13).title, 'Matilda (2nd ed.)');
+  const imported = books.find((book) => book.id === 'keep-my-id');
   assert.equal(imported.dateAdded, '2020-05-05T00:00:00.000Z');
 
   assert.equal((await api('POST', '/api/import', { books: 'nope' })).status, 400);
@@ -298,7 +298,7 @@ test('import: dry run, merge skips duplicates, invalid reported, replace keeps b
   const replaced = await api('POST', '/api/import', { books: [backup[1]], mode: 'replace' });
   assert.equal(replaced.json.total, 1);
   assert.equal((await api('GET', '/api/books')).json.books.length, 1);
-  const bak = JSON.parse(await fs.readFile(path.join(tmp, 'data', 'books.json.bak'), 'utf8'));
+  const bak = JSON.parse(await fs.readFile(path.join(scratch, 'data', 'books.json.bak'), 'utf8'));
   assert.equal(bak.books.length, 2);
 
   const exp = await api('GET', '/api/export');
@@ -309,12 +309,12 @@ test('import: dry run, merge skips duplicates, invalid reported, replace keeps b
 test('concurrent writes do not lose books', async () => {
   const before = (await api('GET', '/api/books')).json.books.length;
   const isbns = ['9780306406157', '9780140328721', '9780132350884', '9781593279509', '9780201633610', '9780596517748', '9781491950296', '9780135957059'];
-  const results = await Promise.all(isbns.map((isbn13, i) => api('POST', '/api/books', { isbn13, title: `Concurrent ${i}` })));
-  const created = results.filter((r) => r.status === 201).length;
+  const results = await Promise.all(isbns.map((isbn13, index) => api('POST', '/api/books', { isbn13, title: `Concurrent ${index}` })));
+  const created = results.filter((result) => result.status === 201).length;
   const after = (await api('GET', '/api/books')).json.books;
   assert.equal(after.length, before + created);
-  assert.equal(new Set(after.map((b) => b.id)).size, after.length);
-  const leftovers = (await fs.readdir(path.join(tmp, 'data'))).filter((f) => f.endsWith('.tmp'));
+  assert.equal(new Set(after.map((book) => book.id)).size, after.length);
+  const leftovers = (await fs.readdir(path.join(scratch, 'data'))).filter((fileName) => fileName.endsWith('.tmp'));
   assert.deepEqual(leftovers, []);
 });
 
@@ -332,11 +332,11 @@ test('Google Books proxy: found, not found, bad ISBN, rate limit, upstream error
   upstreamMode = 'error';
   assert.equal((await api('GET', '/api/lookup/9780140328721')).status, 502);
   upstreamMode = undefined;
-  const dead = createApp({ dataFile: path.join(tmp, 'x.json'), googleBooksUrl: 'http://127.0.0.1:9/volumes', googleViewApiUrl: false, openLibraryUrl: false });
+  const dead = createApp({ dataFile: path.join(scratch, 'x.json'), googleBooksUrl: 'http://127.0.0.1:9/volumes', googleViewApiUrl: false, openLibraryUrl: false });
   const port = await listen(dead.server);
-  const res = await fetch(`http://127.0.0.1:${port}/api/lookup/9780140328721`);
-  assert.equal(res.status, 502);
-  assert.equal((await res.json()).code, 'network');
+  const response = await fetch(`http://127.0.0.1:${port}/api/lookup/9780140328721`);
+  assert.equal(response.status, 502);
+  assert.equal((await response.json()).code, 'network');
   dead.server.close();
 });
 
@@ -361,11 +361,11 @@ test('Open Library fallback: used when Google is limited, down or has no record'
   assert.equal((await lookup()).json.source, 'google');
 
   upstreamMode = 'rate-limit';
-  let res = await lookup();
-  assert.equal(res.status, 200);
-  assert.equal(res.json.source, 'openlibrary');
-  assert.equal(res.json.googleUnavailable, true);
-  const info = res.json.items[0].volumeInfo;
+  let response = await lookup();
+  assert.equal(response.status, 200);
+  assert.equal(response.json.source, 'openlibrary');
+  assert.equal(response.json.googleUnavailable, true);
+  const info = response.json.items[0].volumeInfo;
   assert.equal(info.title, 'Matilda');
   assert.deepEqual(info.authors, ['Roald Dahl']);
   assert.equal(info.publisher, 'Puffin Books');
@@ -396,7 +396,7 @@ test('Open Library fallback: used when Google is limited, down or has no record'
 });
 
 test('corrupt books.json is never overwritten; missing file is an empty library', async () => {
-  const file = path.join(tmp, 'corrupt.json');
+  const file = path.join(scratch, 'corrupt.json');
   await fs.writeFile(file, '{"books": [ {oops');
   const bad = createApp({ dataFile: file });
   const port = await listen(bad.server);
@@ -408,9 +408,44 @@ test('corrupt books.json is never overwritten; missing file is an empty library'
   assert.equal(await fs.readFile(file, 'utf8'), '{"books": [ {oops');
   bad.server.close();
 
-  const fresh = createApp({ dataFile: path.join(tmp, 'new', 'fresh.json') });
-  const p2 = await listen(fresh.server);
-  const add = await fetch(`http://127.0.0.1:${p2}/api/books`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(matilda) });
+  const fresh = createApp({ dataFile: path.join(scratch, 'new', 'fresh.json') });
+  const secondPort = await listen(fresh.server);
+  const add = await fetch(`http://127.0.0.1:${secondPort}/api/books`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(matilda) });
   assert.equal(add.status, 201);
   fresh.server.close();
+});
+
+test('lending: lend, return, history is kept and survives edits', async () => {
+  const created = await api('POST', '/api/books', { isbn13: '9780140449136', title: 'Lendable' });
+  assert.equal(created.status, 201);
+  assert.deepEqual(created.json.book.loans, []);
+  const book = created.json.book;
+
+  const lent = await api('PUT', `/api/books/${book.id}`, {
+    ...book,
+    loans: [{ borrower: '  Aunt  Sarah ', dateBorrowed: '2026-09-01', dateReturned: '' }],
+  });
+  assert.equal(lent.status, 200);
+  assert.deepEqual(lent.json.book.loans, [{ borrower: 'Aunt Sarah', dateBorrowed: '2026-09-01', dateReturned: '' }]);
+
+  // An edit that does not mention loans keeps them.
+  const { loans, ...withoutLoans } = lent.json.book;
+  const edited = await api('PUT', `/api/books/${book.id}`, { ...withoutLoans, title: 'Lendable 2' });
+  assert.equal(edited.json.book.loans.length, 1);
+
+  const returned = await api('PUT', `/api/books/${book.id}`, {
+    ...edited.json.book,
+    loans: [{ borrower: 'Aunt Sarah', dateBorrowed: '2026-09-01', dateReturned: '2026-09-20' }],
+  });
+  assert.equal(returned.json.book.loans[0].dateReturned, '2026-09-20');
+});
+
+test('lending: rejects bad loans', async () => {
+  const base = { isbn13: '9780140449136', title: 'X' };
+  const bad = async (loans) => (await api('POST', '/api/books', { ...base, loans })).status;
+  assert.equal(await bad([{ borrower: '', dateBorrowed: '2026-01-01' }]), 400);
+  assert.equal(await bad([{ borrower: 'A', dateBorrowed: '2026-02-30' }]), 400);
+  assert.equal(await bad([{ borrower: 'A', dateBorrowed: '2026-05-02', dateReturned: '2026-05-01' }]), 400);
+  assert.equal(await bad([{ borrower: 'A', dateBorrowed: '2026-01-01' }, { borrower: 'B', dateBorrowed: '2026-02-01' }]), 400);
+  assert.equal(await bad('nope'), 400);
 });

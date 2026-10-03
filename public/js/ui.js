@@ -1,7 +1,7 @@
 // UI helpers: safe DOM construction, toasts, dialogs and the book renderers.
 // Nothing here uses innerHTML: all book data is inserted as text, so metadata from
 // Google Books or an imported file can never inject markup.
-import { asList, languageName, isRead } from './library.js';
+import { asList, languageName, isRead, currentLoan } from './library.js';
 import { formatIsbn } from './isbn.js';
 
 export const PLACEHOLDER_COVER = 'assets/placeholder-book.svg';
@@ -57,9 +57,9 @@ export function setupDialog(dialog, { backdropClose = false } = {}) {
   });
   if (backdropClose) {
     let pressedOnBackdrop = false;
-    dialog.addEventListener('pointerdown', (e) => (pressedOnBackdrop = e.target === dialog));
-    dialog.addEventListener('click', (e) => {
-      if (e.target === dialog && pressedOnBackdrop) dialog.close();
+    dialog.addEventListener('pointerdown', (event) => (pressedOnBackdrop = event.target === dialog));
+    dialog.addEventListener('click', (event) => {
+      if (event.target === dialog && pressedOnBackdrop) dialog.close();
     });
   }
 }
@@ -73,21 +73,21 @@ export function confirmDialog({ title, message, confirmLabel = 'Delete' }) {
   const dialog = $('#confirm-dialog');
   $('#confirm-title').textContent = title;
   $('#confirm-text').textContent = message;
-  const ok = $('#confirm-ok');
-  ok.textContent = confirmLabel;
-  ok.classList.add('btn--solid');
+  const confirmButton = $('#confirm-ok');
+  confirmButton.textContent = confirmLabel;
+  confirmButton.classList.add('btn--solid');
   return new Promise((resolve) => {
     const finish = (value) => {
-      ok.removeEventListener('click', onOk);
+      confirmButton.removeEventListener('click', onConfirm);
       $('#confirm-cancel').removeEventListener('click', onCancel);
       dialog.removeEventListener('cancel', onEsc);
       if (dialog.open) dialog.close();
       resolve(value);
     };
-    const onOk = () => finish(true);
+    const onConfirm = () => finish(true);
     const onCancel = () => finish(false);
     const onEsc = () => finish(false); // Esc; fires synchronously, unlike the async "close" event
-    ok.addEventListener('click', onOk);
+    confirmButton.addEventListener('click', onConfirm);
     $('#confirm-cancel').addEventListener('click', onCancel);
     dialog.addEventListener('cancel', onEsc);
     dialog.showModal();
@@ -104,37 +104,45 @@ export function setBusy(button, busy) {
 // Book rendering
 // ---------------------------------------------------------------------------
 /** A cover is a web link or an embedded photo (data URL). Anything else gets the placeholder. */
-export function isCoverSource(src) {
-  return typeof src === 'string' && /^(https?:\/\/|data:image\/(jpeg|png|webp);base64,)/i.test(src);
+export function isCoverSource(source) {
+  return typeof source === 'string' && /^(https?:\/\/|data:image\/(jpeg|png|webp);base64,)/i.test(source);
 }
 
-export function coverImage(src, { alt = '', className = '' } = {}) {
-  const img = el('img', { class: className, alt, loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' });
-  img.addEventListener(
+export function coverImage(source, { alt = '', className = '' } = {}) {
+  const image = el('img', { class: className, alt, loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' });
+  image.addEventListener(
     'error',
     () => {
-      if (!img.src.endsWith(PLACEHOLDER_COVER)) img.src = PLACEHOLDER_COVER;
+      if (!image.src.endsWith(PLACEHOLDER_COVER)) image.src = PLACEHOLDER_COVER;
     },
     { once: true },
   );
-  img.src = isCoverSource(src) ? src : PLACEHOLDER_COVER;
-  return img;
+  image.src = isCoverSource(source) ? source : PLACEHOLDER_COVER;
+  return image;
 }
 
 export function authorsText(book) {
   return asList(book.authors).join(', ');
 }
 
-export function formatDate(iso) {
-  const t = Date.parse(iso);
-  if (Number.isNaN(t)) return '';
-  return new Date(t).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+export function formatDate(isoText) {
+  const timestamp = Date.parse(isoText);
+  if (Number.isNaN(timestamp)) return '';
+  return new Date(timestamp).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+/** Format a YYYY-MM-DD calendar date in the viewer's locale (parsed as local time, so it never shifts a day). */
+export function formatDay(dayText) {
+  const dateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dayText || '');
+  if (!dateMatch) return '';
+  return new Date(+dateMatch[1], +dateMatch[2] - 1, +dateMatch[3]).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
 export function renderBookCard(book, { onOpen }) {
   const authors = authorsText(book);
   const isbn = formatIsbn(book);
-  const label = `${book.title || 'Untitled'}${authors ? ` by ${authors}` : ''}${isRead(book) ? ', read' : ''}. View details`;
+  const loan = currentLoan(book);
+  const label = `${book.title || 'Untitled'}${authors ? ` by ${authors}` : ''}${isRead(book) ? ', read' : ''}${loan ? `, lent to ${loan.borrower}` : ''}. View details`;
   const published = (book.publishedDate || '').slice(0, 4);
   return el(
     'article',
@@ -146,6 +154,7 @@ export function renderBookCard(book, { onOpen }) {
         'span',
         { class: 'book__media' },
         coverImage(book.coverImage, { className: 'book__cover' }),
+        loan && el('span', { class: 'lent-badge', text: `Lent to ${loan.borrower}` }),
         isRead(book) && el('span', { class: 'read-badge', title: 'Read', 'aria-hidden': 'true', text: '✓' }),
       ),
       el(
@@ -170,6 +179,7 @@ export function renderBookCard(book, { onOpen }) {
 export function renderDetails(container, book) {
   clear(container);
   const authors = asList(book.authors);
+  const loan = currentLoan(book);
   const rows = [
     ['ISBN-13', book.isbn13],
     ['ISBN-10', book.isbn10],
@@ -178,6 +188,7 @@ export function renderDetails(container, book) {
     ['Pages', book.pageCount],
     ['Language', languageName(book.language)],
     ['Status', isRead(book) ? 'Read' : 'Not read yet'],
+    ['Lent to', loan ? `${loan.borrower}, since ${formatDay(loan.dateBorrowed)}` : ''],
     ['Google Books ID', book.googleBooksId],
     ['Added', formatDate(book.dateAdded)],
     ['Last updated', formatDate(book.dateUpdated)],
@@ -198,13 +209,38 @@ export function renderDetails(container, book) {
           'div',
           { class: 'details__chips' },
           el('span', { class: `chip ${isRead(book) ? 'chip--read' : 'chip--unread'}`, text: isRead(book) ? '✓ Read' : 'Not read yet' }),
-          asList(book.categories).map((c) => el('span', { class: 'chip', text: c })),
+          loan && el('span', { class: 'chip chip--lent', text: `Lent to ${loan.borrower}` }),
+          asList(book.categories).map((category) => el('span', { class: 'chip', text: category })),
         ),
         book.description && el('p', { class: 'details__desc', text: book.description }),
         el(
           'dl',
           { class: 'meta' },
           rows.flatMap(([label, value]) => [el('dt', { text: label }), el('dd', { text: String(value) })]),
+        ),
+        renderLoanHistory(book),
+      ),
+    ),
+  );
+}
+
+function renderLoanHistory(book) {
+  const loans = Array.isArray(book.loans) ? book.loans : [];
+  if (!loans.length) return null;
+  return el(
+    'section',
+    { class: 'loans', 'aria-label': 'Lending history' },
+    el('h3', { class: 'loans__title', text: 'Lending history' }),
+    el(
+      'ul',
+      { class: 'loans__list' },
+      [...loans].reverse().map((loan) =>
+        el(
+          'li',
+          {},
+          el('strong', { text: loan.borrower }),
+          ` · borrowed ${formatDay(loan.dateBorrowed)} · `,
+          loan.dateReturned ? `returned ${formatDay(loan.dateReturned)}` : el('em', { text: 'not returned yet' }),
         ),
       ),
     ),

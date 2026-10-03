@@ -37,13 +37,13 @@ function pickVolume(items, isbn) {
 export function mapVolume(item, searchedIsbn) {
   const info = item.volumeInfo || {};
   const ids = info.industryIdentifiers || [];
-  const fromVolume13 = ids.map((i) => normalizeIsbn(i.identifier)).find(isValidIsbn13) || '';
-  const fromVolume10 = ids.map((i) => normalizeIsbn(i.identifier)).find(isValidIsbn10) || '';
+  const fromVolume13 = ids.map((entry) => normalizeIsbn(entry.identifier)).find(isValidIsbn13) || '';
+  const fromVolume10 = ids.map((entry) => normalizeIsbn(entry.identifier)).find(isValidIsbn10) || '';
   const searched = canonicalIsbn(searchedIsbn);
   const isbn13 = fromVolume13 || (fromVolume10 ? isbn10To13(fromVolume10) : '') || searched;
   const isbn10 = fromVolume10 || isbn13To10(isbn13);
   const links = info.imageLinks || {};
-  const asStrings = (v) => (Array.isArray(v) ? v.filter((s) => typeof s === 'string') : []);
+  const asStrings = (value) => (Array.isArray(value) ? value.filter((entry) => typeof entry === 'string') : []);
 
   return {
     isbn13,

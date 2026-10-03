@@ -10,16 +10,16 @@ export class OpenLibraryError extends Error {}
 /** "1988", "March 1, 1988" and "Mar 1988" -> "1988-03-01" / "1988" / "1988". Unknown -> "". */
 export function normalizePublishDate(text) {
   if (typeof text !== 'string') return '';
-  const s = text.trim();
-  if (/^\d{4}(-\d{2}(-\d{2})?)?$/.test(s)) return s;
-  if (/^[A-Za-z]+\.? \d{1,2}, \d{4}$/.test(s)) {
-    const t = Date.parse(`${s} UTC`);
-    if (!Number.isNaN(t)) return new Date(t).toISOString().slice(0, 10);
+  const trimmed = text.trim();
+  if (/^\d{4}(-\d{2}(-\d{2})?)?$/.test(trimmed)) return trimmed;
+  if (/^[A-Za-z]+\.? \d{1,2}, \d{4}$/.test(trimmed)) {
+    const timestamp = Date.parse(`${trimmed} UTC`);
+    if (!Number.isNaN(timestamp)) return new Date(timestamp).toISOString().slice(0, 10);
   }
-  return s.match(/\b(1[5-9]\d\d|20\d\d)\b/)?.[1] || '';
+  return trimmed.match(/\b(1[5-9]\d\d|20\d\d)\b/)?.[1] || '';
 }
 
-const names = (list) => (Array.isArray(list) ? list.map((x) => x?.name).filter((n) => typeof n === 'string' && n) : []);
+const names = (list) => (Array.isArray(list) ? list.map((x) => x?.name).filter((name) => typeof name === 'string' && name) : []);
 
 /** Convert one Open Library "data" record into a Google-Books-shaped volume. */
 export function openLibraryToVolume(entry, isbn) {
@@ -30,7 +30,7 @@ export function openLibraryToVolume(entry, isbn) {
   ];
   // Make sure the searched ISBN is present so the browser can match the record to it.
   const key = canonicalIsbn(isbn);
-  if (key && !identifiers.some((i) => canonicalIsbn(i.identifier) === key)) {
+  if (key && !identifiers.some((identifierEntry) => canonicalIsbn(identifierEntry.identifier) === key)) {
     identifiers.push({ type: 'ISBN_13', identifier: key });
   }
   const cover = entry.cover?.large || entry.cover?.medium || entry.cover?.small || '';
@@ -56,7 +56,7 @@ export function openLibraryToVolume(entry, isbn) {
  */
 export async function lookupOpenLibrary(baseUrl, isbn) {
   const isbn13 = canonicalIsbn(isbn);
-  const keys = [isbn13, isbn13To10(isbn13)].filter(Boolean).map((i) => `ISBN:${i}`);
+  const keys = [isbn13, isbn13To10(isbn13)].filter(Boolean).map((candidateIsbn) => `ISBN:${candidateIsbn}`);
   const url = new URL(baseUrl);
   url.searchParams.set('bibkeys', keys.join(','));
   url.searchParams.set('format', 'json');
@@ -75,6 +75,6 @@ export async function lookupOpenLibrary(baseUrl, isbn) {
   } catch {
     throw new OpenLibraryError('Open Library returned an unreadable response');
   }
-  const entry = keys.map((k) => data?.[k]).find((e) => e && typeof e === 'object' && e.title);
+  const entry = keys.map((key) => data?.[key]).find((candidate) => candidate && typeof candidate === 'object' && candidate.title);
   return entry ? openLibraryToVolume(entry, isbn) : null;
 }

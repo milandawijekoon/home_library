@@ -55,51 +55,51 @@ class HttpError extends Error {
   }
 }
 
-function sendJson(res, status, body, headers = {}) {
+function sendJson(response, status, body, headers = {}) {
   const payload = JSON.stringify(body);
-  res.writeHead(status, {
+  response.writeHead(status, {
     ...SECURITY_HEADERS,
     'Content-Type': 'application/json; charset=utf-8',
     'Content-Length': Buffer.byteLength(payload),
     'Cache-Control': 'no-store',
     ...headers,
   });
-  res.end(payload);
+  response.end(payload);
 }
 
-function readJsonBody(req, limit) {
+function readJsonBody(request, limit) {
   return new Promise((resolve, reject) => {
-    const type = (req.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
+    const type = (request.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
     if (type !== 'application/json') {
       reject(new HttpError(415, 'Content-Type must be application/json'));
-      req.resume();
+      request.resume();
       return;
     }
-    const declared = Number(req.headers['content-length']);
+    const declared = Number(request.headers['content-length']);
     if (declared > limit) {
       reject(new HttpError(413, 'Request body is too large'));
-      req.resume();
+      request.resume();
       return;
     }
     const chunks = [];
     let size = 0;
-    req.on('data', (chunk) => {
+    request.on('data', (chunk) => {
       size += chunk.length;
       if (size > limit) {
         reject(new HttpError(413, 'Request body is too large'));
-        req.destroy();
+        request.destroy();
         return;
       }
       chunks.push(chunk);
     });
-    req.on('end', () => {
+    request.on('end', () => {
       try {
         resolve(JSON.parse(Buffer.concat(chunks).toString('utf8')));
       } catch {
         reject(new HttpError(400, 'Request body is not valid JSON'));
       }
     });
-    req.on('error', reject);
+    request.on('error', reject);
   });
 }
 
@@ -149,7 +149,7 @@ async function lookupViaViewApi(options, isbns, wanted13) {
   if (!options.googleViewApiUrl) return null;
   const url = new URL(options.googleViewApiUrl);
   url.searchParams.set('jscmd', 'viewapi');
-  url.searchParams.set('bibkeys', isbns.map((i) => `ISBN:${i}`).join(','));
+  url.searchParams.set('bibkeys', isbns.map((isbn) => `ISBN:${isbn}`).join(','));
 
   let id = null;
   try {
@@ -229,7 +229,7 @@ async function lookupIsbn(options, isbn) {
 // ---------------------------------------------------------------------------
 // Static files
 // ---------------------------------------------------------------------------
-async function serveStatic(req, res, pathname) {
+async function serveStatic(request, response, pathname) {
   let file;
   if (pathname === '/vendor/zxing.min.js') {
     file = ZXING_FILE;
@@ -260,13 +260,13 @@ async function serveStatic(req, res, pathname) {
     if (err instanceof HttpError) throw err;
     throw new HttpError(404, 'Not found');
   }
-  res.writeHead(200, {
+  response.writeHead(200, {
     ...SECURITY_HEADERS,
     'Content-Type': MIME[path.extname(file).toLowerCase()] || 'application/octet-stream',
     'Content-Length': data.length,
     'Cache-Control': 'no-cache',
   });
-  res.end(req.method === 'HEAD' ? undefined : data);
+  response.end(request.method === 'HEAD' ? undefined : data);
 }
 
 // ---------------------------------------------------------------------------
@@ -280,9 +280,9 @@ function safeDecode(segment) {
   }
 }
 
-async function handleApi(req, res, pathname, searchParams, ctx) {
-  const { store, options } = ctx;
-  const method = req.method;
+async function handleApi(request, response, pathname, searchParams, context) {
+  const { store, options } = context;
+  const method = request.method;
   const allow = (...methods) => {
     if (!methods.includes(method)) {
       throw new HttpError(405, 'Method not allowed', { headers: { Allow: methods.join(', ') } });
@@ -292,14 +292,14 @@ async function handleApi(req, res, pathname, searchParams, ctx) {
   if (pathname === '/api/health') {
     allow('GET');
     const count = (await store.list()).length;
-    return sendJson(res, 200, { status: 'ok', books: count, lookupKeyConfigured: Boolean(options.googleBooksKey) });
+    return sendJson(response, 200, { status: 'ok', books: count, lookupKeyConfigured: Boolean(options.googleBooksKey) });
   }
 
   if (pathname === '/api/books') {
     allow('GET', 'POST');
-    if (method === 'GET') return sendJson(res, 200, { books: await store.list() });
-    const book = await store.add(await readJsonBody(req, MAX_BODY_BYTES));
-    return sendJson(res, 201, { book }, { Location: `/api/books/${book.id}` });
+    if (method === 'GET') return sendJson(response, 200, { books: await store.list() });
+    const book = await store.add(await readJsonBody(request, MAX_BODY_BYTES));
+    return sendJson(response, 201, { book }, { Location: `/api/books/${book.id}` });
   }
 
   const bookMatch = pathname.match(/^\/api\/books\/([^/]+)$/);
@@ -307,11 +307,11 @@ async function handleApi(req, res, pathname, searchParams, ctx) {
     allow('GET', 'PUT', 'DELETE');
     const id = safeDecode(bookMatch[1]);
     if (!isValidId(id)) throw new HttpError(404, 'Book not found');
-    if (method === 'GET') return sendJson(res, 200, { book: await store.get(id) });
+    if (method === 'GET') return sendJson(response, 200, { book: await store.get(id) });
     if (method === 'PUT') {
-      return sendJson(res, 200, { book: await store.update(id, await readJsonBody(req, MAX_BODY_BYTES)) });
+      return sendJson(response, 200, { book: await store.update(id, await readJsonBody(request, MAX_BODY_BYTES)) });
     }
-    return sendJson(res, 200, { deleted: await store.remove(id) });
+    return sendJson(response, 200, { deleted: await store.remove(id) });
   }
 
   if (pathname === '/api/export') {
@@ -319,7 +319,7 @@ async function handleApi(req, res, pathname, searchParams, ctx) {
     const books = await store.list();
     const stamp = new Date().toISOString().slice(0, 10);
     return sendJson(
-      res,
+      response,
       200,
       { app: 'home_library', version: 1, exportedAt: new Date().toISOString(), books },
       { 'Content-Disposition': `attachment; filename="home_library-${stamp}.json"` },
@@ -328,13 +328,13 @@ async function handleApi(req, res, pathname, searchParams, ctx) {
 
   if (pathname === '/api/import') {
     allow('POST');
-    const body = await readJsonBody(req, MAX_IMPORT_BYTES);
+    const body = await readJsonBody(request, MAX_IMPORT_BYTES);
     const rawBooks = Array.isArray(body) ? body : body?.books;
     const result = await store.importBooks(rawBooks, {
       mode: body?.mode === undefined || Array.isArray(body) ? 'merge' : body.mode,
       dryRun: body?.dryRun === true,
     });
-    return sendJson(res, 200, result);
+    return sendJson(response, 200, result);
   }
 
   const lookupMatch = pathname.match(/^\/api\/lookup\/([^/]+)$/);
@@ -342,7 +342,7 @@ async function handleApi(req, res, pathname, searchParams, ctx) {
     allow('GET');
     const isbn = safeDecode(lookupMatch[1]);
     if (!isValidIsbn(isbn)) throw new HttpError(400, 'Not a valid ISBN-10 or ISBN-13');
-    return sendJson(res, 200, await lookupIsbn(options, isbn));
+    return sendJson(response, 200, await lookupIsbn(options, isbn));
   }
 
   throw new HttpError(404, 'Unknown API endpoint');
@@ -375,28 +375,28 @@ export function createApp(config = {}) {
   const store = new BookStore(options.dataFile);
   // When bound to loopback only, reject unexpected Host headers (DNS-rebinding defence).
   const checkHost = LOOPBACK.has(options.host) || options.host === '::1';
-  const ctx = { store, options };
+  const context = { store, options };
 
-  const server = http.createServer(async (req, res) => {
+  const server = http.createServer(async (request, response) => {
     try {
-      if (checkHost && !LOOPBACK.has(hostnameOf(req.headers.host))) {
+      if (checkHost && !LOOPBACK.has(hostnameOf(request.headers.host))) {
         throw new HttpError(403, 'Unexpected Host header');
       }
-      const origin = req.headers.origin;
-      if (origin && origin !== 'null' && new URL(origin).host !== req.headers.host) {
+      const origin = request.headers.origin;
+      if (origin && origin !== 'null' && new URL(origin).host !== request.headers.host) {
         throw new HttpError(403, 'Cross-origin requests are not allowed');
       }
       if (origin === 'null') throw new HttpError(403, 'Cross-origin requests are not allowed');
 
-      const url = new URL(req.url, 'http://localhost');
+      const url = new URL(request.url, 'http://localhost');
       if (url.pathname === '/api' || url.pathname.startsWith('/api/')) {
-        await handleApi(req, res, url.pathname, url.searchParams, ctx);
+        await handleApi(request, response, url.pathname, url.searchParams, context);
         return;
       }
-      if (req.method !== 'GET' && req.method !== 'HEAD') {
+      if (request.method !== 'GET' && request.method !== 'HEAD') {
         throw new HttpError(405, 'Method not allowed', { headers: { Allow: 'GET, HEAD' } });
       }
-      await serveStatic(req, res, url.pathname);
+      await serveStatic(request, response, url.pathname);
     } catch (err) {
       let status = 500;
       let message = 'Internal server error';
@@ -408,9 +408,9 @@ export function createApp(config = {}) {
       } else {
         console.error('Unexpected error:', err);
       }
-      if (res.headersSent) return res.destroy();
+      if (response.headersSent) return response.destroy();
       const { headers, ...body } = extra;
-      sendJson(res, status, { error: message, ...body }, headers);
+      sendJson(response, status, { error: message, ...body }, headers);
     }
   });
   // A bad client must not be able to hold sockets open forever.

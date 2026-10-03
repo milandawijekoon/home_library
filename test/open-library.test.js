@@ -13,10 +13,10 @@ test('publish dates are normalised', () => {
 });
 
 test('sparse Open Library records convert safely and keep the searched ISBN', () => {
-  const v = openLibraryToVolume({ title: 'Only a title' }, '0140328726');
-  assert.equal(v.volumeInfo.title, 'Only a title');
-  assert.deepEqual(v.volumeInfo.authors, []);
-  assert.equal(v.volumeInfo.industryIdentifiers[0].identifier, '9780140328721');
-  assert.equal(v.volumeInfo.pageCount, undefined);
-  assert.equal(v.volumeInfo.imageLinks, undefined);
+  const volume = openLibraryToVolume({ title: 'Only a title' }, '0140328726');
+  assert.equal(volume.volumeInfo.title, 'Only a title');
+  assert.deepEqual(volume.volumeInfo.authors, []);
+  assert.equal(volume.volumeInfo.industryIdentifiers[0].identifier, '9780140328721');
+  assert.equal(volume.volumeInfo.pageCount, undefined);
+  assert.equal(volume.volumeInfo.imageLinks, undefined);
 });

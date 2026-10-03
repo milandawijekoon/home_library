@@ -55,6 +55,7 @@
             <option value="">All books</option>
             <option value="read">Read</option>
             <option value="unread">Not read yet</option>
+            <option value="lent">Lent out</option>
           </select>
         </label>
         <label class="select">
@@ -251,9 +252,33 @@
     <div class="dialog__body" id="details-body"></div>
     <div class="dialog__footer">
       <button type="button" class="btn btn--danger" id="details-delete">Delete</button>
+      <button type="button" class="btn" id="details-loan">Lend this book</button>
       <button type="button" class="btn" id="details-toggle-read">Mark as read</button>
       <button type="button" class="btn btn--primary" id="details-edit">Edit</button>
     </div>
+  </dialog>
+
+  <!-- Lend / return -->
+  <dialog id="loan-dialog" class="dialog dialog--small" aria-labelledby="loan-title">
+    <form id="loan-form" novalidate>
+      <div class="dialog__header"><h2 id="loan-title">Lend this book</h2></div>
+      <div class="dialog__body">
+        <p class="hint" id="loan-summary"></p>
+        <div class="form-field" id="loan-borrower-field">
+          <label for="loan-borrower">Who is borrowing it?</label>
+          <input id="loan-borrower" maxlength="100" autocomplete="off" placeholder="e.g. Aunt Sarah">
+        </div>
+        <div class="form-field">
+          <label for="loan-date" id="loan-date-label">Date borrowed</label>
+          <input id="loan-date" type="date">
+        </div>
+        <div class="banner banner--error" id="loan-error" role="alert" hidden></div>
+      </div>
+      <div class="dialog__footer">
+        <button type="button" class="btn" data-close>Cancel</button>
+        <button type="submit" class="btn btn--primary" id="loan-submit">Save</button>
+      </div>
+    </form>
   </dialog>
 
   <!-- Cover photo -->

@@ -122,7 +122,7 @@ export class BarcodeScanner {
       throw describeCameraError(err);
     }
     if (session !== this.session) {
-      stream.getTracks().forEach((t) => t.stop()); // stopped/closed while the permission prompt was open
+      stream.getTracks().forEach((track) => track.stop()); // stopped/closed while the permission prompt was open
       throw new ScannerError('Scanner closed.', 'cancelled');
     }
 
@@ -170,7 +170,7 @@ export class BarcodeScanner {
     clearTimeout(this.timer);
     this.timer = null;
     if (this.stream) {
-      this.stream.getTracks().forEach((t) => t.stop());
+      this.stream.getTracks().forEach((track) => track.stop());
       this.stream = null;
     }
     this.video.pause();
@@ -212,12 +212,12 @@ export class BarcodeScanner {
     await loadZXing();
     this.engine = 'ZXing';
     this.canvas ??= document.createElement('canvas');
-    const ctx = this.canvas.getContext('2d', { willReadFrequently: true });
+    const context = this.canvas.getContext('2d', { willReadFrequently: true });
     return () => {
       const scale = Math.min(1, MAX_DECODE_WIDTH / this.video.videoWidth);
       this.canvas.width = Math.round(this.video.videoWidth * scale);
       this.canvas.height = Math.round(this.video.videoHeight * scale);
-      ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
+      context.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
       return decodeCanvasWithZXing(this.canvas);
     };
   }
