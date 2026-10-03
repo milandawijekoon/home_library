@@ -1,0 +1,4 @@
+node_modules/
+data/books.json.bak
+data/.*.tmp
+.DS_Store

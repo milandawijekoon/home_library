@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 300" role="img" aria-label="No cover available">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e9e4da"/>
+      <stop offset="1" stop-color="#d6cfc2"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="300" fill="url(#g)"/>
+  <rect x="14" y="0" width="6" height="300" fill="#000" opacity="0.06"/>
+  <g fill="none" stroke="#8a8173" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity="0.8">
+    <path d="M60 112c14-9 28-9 40 0 12-9 26-9 40 0v62c-14-9-28-9-40 0-12-9-26-9-40 0z"/>
+    <path d="M100 112v62"/>
+  </g>
+  <text x="100" y="222" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#8a8173">No cover</text>
+</svg>

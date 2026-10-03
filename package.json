@@ -1,0 +1,18 @@
+{
+  "name": "home_library",
+  "version": "1.0.0",
+  "description": "A simple personal home library: scan ISBN barcodes, fetch book details from Google Books, and keep everything in a local JSON file.",
+  "type": "module",
+  "main": "server.js",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@zxing/library": "^0.21.3"
+  }
+}

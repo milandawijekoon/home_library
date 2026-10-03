@@ -1,0 +1,414 @@
+{
+  "books": [
+    {
+      "id": "c5faf276-2851-42bb-94d7-8a963ee2bab4",
+      "isbn13": "9781847941831",
+      "isbn10": "1847941834",
+      "title": "Atomic Habits",
+      "subtitle": "",
+      "authors": [
+        "James Clear"
+      ],
+      "publisher": "Random Hause Business",
+      "publishedDate": "2018-10-18",
+      "description": "",
+      "pageCount": null,
+      "categories": [
+        "Habit",
+        "Habit breaking",
+        "Behavior modification",
+        "Self-actualization (psychology)",
+        "Business"
+      ],
+      "language": "",
+      "coverImage": "https://covers.openlibrary.org/b/id/15247577-L.jpg",
+      "googleBooksId": "",
+      "dateAdded": "2026-10-02T16:46:08.545Z",
+      "dateUpdated": "2026-10-02T16:46:08.545Z"
+    },
+    {
+      "id": "288aca6d-b8cc-43d5-8664-f8febb4ac2c7",
+      "isbn13": "9781398509337",
+      "isbn10": "1398509337",
+      "title": "Winter Counts",
+      "subtitle": "",
+      "authors": [
+        "David Heska Wanbli Weiden"
+      ],
+      "publisher": "Simon & Schuster, Limited",
+      "publishedDate": "2022",
+      "description": "",
+      "pageCount": null,
+      "categories": [
+        "Indians of north america",
+        "fiction",
+        "South dakota",
+        "Fiction",
+        "mystery & detective",
+        "general",
+        "indigenous",
+        "thrillers",
+        "crime"
+      ],
+      "language": "",
+      "coverImage": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTyytN3DyWStkuu1OLoF4YCB5zmrFS15sCEGwPZg1PoMw&s",
+      "googleBooksId": "",
+      "read": false,
+      "dateAdded": "2026-10-02T16:46:38.414Z",
+      "dateUpdated": "2026-10-02T19:35:08.430Z"
+    },
+    {
+      "id": "1c40f49c-1df1-4bb5-993e-d7a25d4af002",
+      "isbn13": "9789390166268",
+      "isbn10": "9390166268",
+      "title": "The Psychology Of Money",
+      "subtitle": "",
+      "authors": [
+        "Morgan Housel"
+      ],
+      "publisher": "Jaico",
+      "publishedDate": "2020-06-24",
+      "description": "",
+      "pageCount": null,
+      "categories": [
+        "Money",
+        "Consumption (Economics)",
+        "Quality of life",
+        "Attitude change",
+        "Accounting"
+      ],
+      "language": "",
+      "coverImage": "https://covers.openlibrary.org/b/id/11301348-L.jpg",
+      "googleBooksId": "",
+      "dateAdded": "2026-10-02T16:48:02.909Z",
+      "dateUpdated": "2026-10-02T16:48:02.909Z"
+    },
+    {
+      "id": "d9278498-e3ac-401e-87f7-b9a694313203",
+      "isbn13": "9780141365374",
+      "isbn10": "0141365374",
+      "title": "Charlie and the Chocolate Factory",
+      "subtitle": "",
+      "authors": [
+        "Roald Dahl"
+      ],
+      "publisher": "Puffin",
+      "publishedDate": "2016",
+      "description": "",
+      "pageCount": 208,
+      "categories": [
+        "Childrens Media Tie-In Books",
+        "Children's Middle Grade Action & Adventure Books",
+        "Children's Picture Books",
+        "Avarice",
+        "Behavior"
+      ],
+      "language": "",
+      "coverImage": "https://covers.openlibrary.org/b/id/15096911-L.jpg",
+      "googleBooksId": "",
+      "dateAdded": "2026-10-02T16:49:27.160Z",
+      "dateUpdated": "2026-10-02T16:49:27.160Z"
+    },
+    {
+      "id": "7d946dbf-fa31-4afe-a47a-a990a09707ad",
+      "isbn13": "9789388423380",
+      "isbn10": "9388423380",
+      "title": "How to Stop Worrying and Start Living",
+      "subtitle": "",
+      "authors": [
+        "Dale Carnegie",
+        "Kaneiji Dale"
+      ],
+      "publisher": "Jaico Publishing House",
+      "publishedDate": "2019-01-01",
+      "description": "",
+      "pageCount": 284,
+      "categories": [
+        "Success",
+        "Worry",
+        "Conduct of life",
+        "Conducta (Ética)",
+        "Interpersonal relations"
+      ],
+      "language": "",
+      "coverImage": "https://covers.openlibrary.org/b/id/10221772-L.jpg",
+      "googleBooksId": "",
+      "dateAdded": "2026-10-02T16:49:41.296Z",
+      "dateUpdated": "2026-10-02T16:49:41.296Z"
+    },
+    {
+      "id": "6bf73fae-1c2c-4ea4-9e78-6e483f33cbe1",
+      "isbn13": "9789387944893",
+      "isbn10": "9387944891",
+      "title": "The 5 AM Club",
+      "subtitle": "Own Your Morning, Elevate Your Life",
+      "authors": [
+        "Robin S. Sharma"
+      ],
+      "publisher": "Jaico",
+      "publishedDate": "2018-06-05",
+      "description": "",
+      "pageCount": 420,
+      "categories": [
+        "Self-actualization (psychology)",
+        "Time management",
+        "Creative thinking",
+        "Diaries",
+        "authorship"
+      ],
+      "language": "",
+      "coverImage": "https://covers.openlibrary.org/b/id/11217364-L.jpg",
+      "googleBooksId": "",
+      "dateAdded": "2026-10-02T16:50:42.110Z",
+      "dateUpdated": "2026-10-02T16:50:42.110Z"
+    },
+    {
+      "id": "d847b2a1-2cb2-47e9-94dd-330639392e36",
+      "isbn13": "9780008386597",
+      "isbn10": "0008386595",
+      "title": "Think Like A Monk: TRAIN YOUR MIND for PEACE and PURPOSE EVERY DAY",
+      "subtitle": "TRAIN YOUR MIND for PEACE and PURPOSE EVERY DAY",
+      "authors": [
+        "Jay Shetty"
+      ],
+      "publisher": "Thorsons",
+      "publishedDate": "2020",
+      "description": "",
+      "pageCount": 328,
+      "categories": [
+        "Self-help",
+        "nyt:advice-how-to-and-miscellaneous=2020-09-27",
+        "New York Times bestseller",
+        "Self-realization",
+        "Meaning (psychology)"
+      ],
+      "language": "",
+      "coverImage": "https://img.drz.lazcdn.com/static/lk/p/626c283048ad4bf4a348ad909e4c117e.jpg_720x720q80.jpg_.webp",
+      "googleBooksId": "",
+      "read": false,
+      "dateAdded": "2026-10-02T16:51:15.510Z",
+      "dateUpdated": "2026-10-02T19:35:54.664Z"
+    },
+    {
+      "id": "4f9e9889-665f-46ca-9d16-d968ba157107",
+      "isbn13": "9781786330895",
+      "isbn10": "178633089X",
+      "title": "Ikigai",
+      "subtitle": "The Japanese secret to a long and happy life",
+      "authors": [
+        "Héctor García",
+        "Francesc Miralles"
+      ],
+      "publisher": "Random House",
+      "publishedDate": "2017-09-09",
+      "description": "",
+      "pageCount": 208,
+      "categories": [
+        "Ikigai",
+        "Longevity",
+        "Happiness",
+        "Quality of life",
+        "Japan",
+        "social conditions"
+      ],
+      "language": "",
+      "coverImage": "https://covers.openlibrary.org/b/id/8779011-L.jpg",
+      "googleBooksId": "",
+      "dateAdded": "2026-10-02T16:51:42.393Z",
+      "dateUpdated": "2026-10-02T16:51:42.393Z"
+    },
+    {
+      "id": "9ac647cd-3174-4b6b-bfd7-5d8ecd69a1e1",
+      "isbn13": "9781612681139",
+      "isbn10": "1612681131",
+      "title": "Rich Dad Poor Dad",
+      "subtitle": "What the Rich Teach Their Kids about Money That the Poor and Middle Class Do Not!",
+      "authors": [
+        "Robert T. Kiyosaki",
+        "Sharon L. Lechter"
+      ],
+      "publisher": "Plata Publishing",
+      "publishedDate": "2022",
+      "description": "",
+      "pageCount": null,
+      "categories": [
+        "Rich people",
+        "Personal Finance",
+        "Investments",
+        "Finanzas personales",
+        "Inversiones"
+      ],
+      "language": "",
+      "coverImage": "https://covers.openlibrary.org/b/id/14675319-L.jpg",
+      "googleBooksId": "",
+      "dateAdded": "2026-10-02T16:51:59.259Z",
+      "dateUpdated": "2026-10-02T16:51:59.259Z"
+    },
+    {
+      "id": "ebf1cc67-f6ac-4103-b0bd-d0d605ca11e7",
+      "isbn13": "9789354403439",
+      "isbn10": "9354403433",
+      "title": "Sudoku - Brain Booster Puzzles for Kids",
+      "subtitle": "Level 3",
+      "authors": [
+        "Wonder House Books"
+      ],
+      "publisher": "Prakash Book Depot",
+      "publishedDate": "2021",
+      "description": "",
+      "pageCount": null,
+      "categories": [],
+      "language": "",
+      "coverImage": "https://cdn.zeptonow.com/production/ik-seo/cms/product_variant/b3b14941-6402-4c0e-aa92-05ce5a51fb04/Sudoku-Brain-Games-For-Smart-Minds-Level-3-Complexbrain-Booster-Puzzles-For-Kids-120-Fun-Games.jpg",
+      "googleBooksId": "",
+      "read": false,
+      "dateAdded": "2026-10-02T16:52:20.460Z",
+      "dateUpdated": "2026-10-02T19:37:34.017Z"
+    },
+    {
+      "id": "f93b8f0d-27c5-4a08-b568-fbe5791f6c9c",
+      "isbn13": "9786245546732",
+      "isbn10": "6245546737",
+      "title": "ඇහැළ මලට දම් පාටක්",
+      "subtitle": "යොවුන් නවකතාව",
+      "authors": [],
+      "publisher": "Vidarshana Publishers",
+      "publishedDate": "2024",
+      "description": "",
+      "pageCount": 290,
+      "categories": [],
+      "language": "si",
+      "coverImage": "https://grantha.lk/media/catalog/product/cache/3c8129f5d0ba4d4250822c495b95f335/a/h/ahala_malata_dam_patak_01.jpg",
+      "googleBooksId": "-g8D0QEACAAJ",
+      "read": false,
+      "dateAdded": "2026-10-02T17:29:52.415Z",
+      "dateUpdated": "2026-10-02T19:36:16.029Z"
+    },
+    {
+      "id": "6573de93-f6f1-4d6c-9799-d369afef6799",
+      "isbn13": "9789354409943",
+      "isbn10": "9354409946",
+      "title": "Crossword Puzzles Book 2 - 170+ Engaging Crossword Puzzles / 2000+ Words Vocabulary for Building / Puzzles with Answer Sheets /Boosts Cognitive Skills /",
+      "subtitle": "",
+      "authors": [
+        "Wonder House Books"
+      ],
+      "publisher": "Prakash Books India Pvt Ltd",
+      "publishedDate": "2023-07-08",
+      "description": "Challenge Your Mind—One Word at a Time! Crossword Puzzles Book 2 is the perfect pick for puzzle lovers who enjoy testing their vocabulary, logic, and general knowledge. With 175 engaging puzzles covering a wide variety of themes, this book provides hours of screen-free entertainment while sharpening the mind and expanding word power.\n Whether you’re solving solo or with friends, this brain-boosting activity book encourages critical thinking and builds a robust vocabulary through carefully crafted clues and intriguing wordplay. It’s a fun, educational tool for readers of all ages who enjoy language-based challenges.\n What’s Inside:  175 crossword puzzles designed to challenge and entertain\n Over 2000 words from diverse topics to expand vocabulary\n Answer key included at the back for easy reference\n  Why Parents & Educators Will Appreciate It:  Helps enhance language and reasoning skills\n Encourages screen-free engagement and independent learning\n Improves concentration, memory, and problem-solving abilities\n  Why Puzzle Lovers Will Enjoy It:  Challenging clues to keep the brain stimulated\n Diverse word themes make every puzzle unique\n Perfect size for at-home or on-the-go fun\n  Product Features:  Softcover puzzle book with clean layout and bold fonts\n Answer sheet included for self-checking\n Ideal for ages 8+ or any curious word enthusiast\n  Perfect For:  Building vocabulary and general knowledge\n Relaxing yet productive leisure time\n Classrooms, travel, or daily brain workouts",
+      "pageCount": 192,
+      "categories": [
+        "Juvenile Nonfiction / Games & Activities / Puzzles",
+        "Juvenile Nonfiction / Games & Activities / Word Games",
+        "Juvenile Nonfiction / Humor / Jokes & Riddles"
+      ],
+      "language": "en",
+      "coverImage": "https://books.google.com/books/publisher/content?id=ejEBEgAAQBAJ&printsec=frontcover&img=1&zoom=1&imgtk=AFLRE71UXqajcP7yI3OFnlxM6shwDh2l86iFL5X49x9ww0fq1V2SzL1uMf3xmoOzs1M10qbRoqruTTOhLhPlP6zqFDfGgMhQJG969vPW7tr6No3yk0Zojio5CoVYJQLCpaU1M82kYPfq&source=gbs_api",
+      "googleBooksId": "ejEBEgAAQBAJ",
+      "dateAdded": "2026-10-02T17:30:55.363Z",
+      "dateUpdated": "2026-10-02T17:30:55.363Z"
+    },
+    {
+      "id": "20fce983-fe86-46bb-8f83-cd183c776b25",
+      "isbn13": "9789553727220",
+      "isbn10": "9553727220",
+      "title": "12.12.12",
+      "subtitle": "a perfect suspense thriller",
+      "authors": [],
+      "publisher": "Muses Publishing House",
+      "publishedDate": "2020",
+      "description": "",
+      "pageCount": 423,
+      "categories": [],
+      "language": "si",
+      "coverImage": "https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1560767286l/50754904.jpg",
+      "googleBooksId": "N45czgEACAAJ",
+      "read": true,
+      "dateAdded": "2026-10-02T17:32:02.847Z",
+      "dateUpdated": "2026-10-02T19:41:03.434Z"
+    },
+    {
+      "id": "869b83c4-c366-4864-96bd-4e8b9bc05479",
+      "isbn13": "9786245579242",
+      "isbn10": "6245579244",
+      "title": "D",
+      "subtitle": "",
+      "authors": [],
+      "publisher": "Muses Books",
+      "publishedDate": "2022",
+      "description": "",
+      "pageCount": 327,
+      "categories": [],
+      "language": "si",
+      "coverImage": "https://cms.sarasavi.lk/storage/product/6245579244.jpg",
+      "googleBooksId": "wFDRzwEACAAJ",
+      "read": true,
+      "dateAdded": "2026-10-02T17:32:24.815Z",
+      "dateUpdated": "2026-10-02T19:41:07.499Z"
+    },
+    {
+      "id": "a90f227b-3f17-48d0-92cf-a6be97a22bdf",
+      "isbn13": "9786245579150",
+      "isbn10": "6245579155",
+      "title": "දෙවැනි ගැහැනිය",
+      "subtitle": "",
+      "authors": [
+        "Mañjula Sēnāratna",
+        "මංජුල​ සෙනාරත්න​"
+      ],
+      "publisher": "Muses Books",
+      "publishedDate": "2021",
+      "description": "",
+      "pageCount": 451,
+      "categories": [],
+      "language": "si",
+      "coverImage": "https://grantha.lk/media/catalog/product/cache/aa2e65d2c3ec15521a9ae5ea162f7958/s/c/scan_20211231.jpg",
+      "googleBooksId": "i0JozwEACAAJ",
+      "read": false,
+      "dateAdded": "2026-10-02T17:34:37.118Z",
+      "dateUpdated": "2026-10-02T19:39:10.887Z"
+    },
+    {
+      "id": "56916b1e-4a7f-41d4-b105-bdafa247a87d",
+      "isbn13": "9789553119162",
+      "isbn10": "9553119166",
+      "title": "හිඟන කොල්ලා",
+      "subtitle": "",
+      "authors": [
+        "ඩබ්ලිව් ඒ සිල්වා"
+      ],
+      "publisher": "Sarasavi Prakāśakayō",
+      "publishedDate": "2022",
+      "description": "",
+      "pageCount": 296,
+      "categories": [],
+      "language": "si",
+      "coverImage": "https://www.keheli.lk/uploads/images/thumbnails/CamScanner-06-14-2023-14.00_1.webp",
+      "googleBooksId": "oSh20QEACAAJ",
+      "read": false,
+      "dateAdded": "2026-10-02T17:34:54.904Z",
+      "dateUpdated": "2026-10-02T19:39:40.769Z"
+    },
+    {
+      "id": "661bcfdb-695b-434d-b5ac-a90a6e2dd464",
+      "isbn13": "9789553727640",
+      "isbn10": "9553727646",
+      "title": "බියුරෝ",
+      "subtitle": "",
+      "authors": [
+        "මංජුල සේනාරත්න"
+      ],
+      "publisher": "MusesBooks",
+      "publishedDate": "2020",
+      "description": "",
+      "pageCount": 590,
+      "categories": [],
+      "language": "si",
+      "coverImage": "https://musesbooks.lk/wp-content/uploads/2026/03/Bureau.jpg",
+      "googleBooksId": "v7Jz0QEACAAJ",
+      "read": true,
+      "dateAdded": "2026-10-02T17:36:14.506Z",
+      "dateUpdated": "2026-10-02T19:41:16.296Z"
+    }
+  ]
+}

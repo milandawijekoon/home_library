@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>My Home Library</title>
+  <meta name="description" content="A personal home library: scan ISBN barcodes and keep track of your books.">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="assets/placeholder-book.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/styles.css">
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#library">Skip to books</a>
+
+  <header class="app-header">
+    <div class="app-header__inner">
+      <div class="brand">
+        <svg class="brand__logo" viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V5a2 2 0 0 1 2-2h13v15H6a2 2 0 0 0-2 2Zm0 0A2 2 0 0 0 6 21h13v-3"/><path d="M9 7h6"/></svg>
+        <h1 class="brand__title">My Home Library</h1>
+        <span class="count-badge" id="book-count" aria-live="polite">0 books</span>
+      </div>
+      <div class="header-actions">
+        <button type="button" class="btn btn--primary" id="btn-scan">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8M11 8v8M15 8v8M18 8v8"/></svg>
+          <span>Scan ISBN</span>
+        </button>
+        <button type="button" class="btn" id="btn-add">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          <span>Add Book</span>
+        </button>
+        <button type="button" class="btn btn--ghost" id="btn-export" title="Download your library as a JSON backup">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+          <span class="btn__label">Export</span>
+        </button>
+        <button type="button" class="btn btn--ghost" id="btn-import" title="Import or restore from a JSON backup">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5M5 21h14"/></svg>
+          <span class="btn__label">Import</span>
+        </button>
+        <input type="file" id="import-file" accept="application/json,.json" hidden>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="toolbar" aria-label="Search, filter and sort">
+      <div class="field field--search">
+        <label class="sr-only" for="search">Search by title, author or ISBN</label>
+        <svg class="field__icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="search" id="search" placeholder="Search title, author or ISBN" autocomplete="off">
+      </div>
+      <div class="toolbar__controls">
+        <label class="select">
+          <span class="select__label">Category</span>
+          <select id="filter-category"><option value="">All categories</option></select>
+        </label>
+        <label class="select">
+          <span class="select__label">Language</span>
+          <select id="filter-language"><option value="">All languages</option></select>
+        </label>
+        <label class="select">
+          <span class="select__label">Status</span>
+          <select id="filter-status">
+            <option value="">All books</option>
+            <option value="read">Read</option>
+            <option value="unread">Not read yet</option>
+          </select>
+        </label>
+        <label class="select">
+          <span class="select__label">Sort by</span>
+          <select id="sort-by">
+            <option value="dateAdded">Date added</option>
+            <option value="title">Title</option>
+            <option value="author">Author</option>
+            <option value="publishedDate">Publication date</option>
+          </select>
+        </label>
+        <button type="button" class="btn btn--icon" id="sort-dir" aria-label="Sort direction: newest first" title="Toggle sort direction">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/></svg>
+        </button>
+        <div class="segmented" role="group" aria-label="Layout">
+          <button type="button" id="view-grid" aria-pressed="true" title="Grid view">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            <span class="sr-only">Grid view</span>
+          </button>
+          <button type="button" id="view-list" aria-pressed="false" title="List view">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+            <span class="sr-only">List view</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <p class="results-summary" id="results-summary" role="status"></p>
+
+    <div class="banner banner--error" id="load-error" role="alert" hidden>
+      <p id="load-error-text"></p>
+      <button type="button" class="btn btn--small" id="btn-retry">Try again</button>
+    </div>
+
+    <div id="library" class="library library--grid" aria-busy="true"></div>
+
+    <div class="empty" id="empty-state" hidden>
+      <svg viewBox="0 0 24 24" width="56" height="56" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V5a2 2 0 0 1 2-2h13v15H6a2 2 0 0 0-2 2Zm0 0A2 2 0 0 0 6 21h13v-3"/><path d="M9 7h6"/></svg>
+      <h2 id="empty-title">Your library is empty</h2>
+      <p id="empty-text">Scan the barcode on the back of a book to add your first one.</p>
+      <div class="empty__actions" id="empty-actions"></div>
+    </div>
+  </main>
+
+  <div class="toasts" id="toasts" role="region" aria-label="Notifications"></div>
+
+  <!-- Scanner -->
+  <dialog id="scanner-dialog" class="dialog dialog--scanner" aria-labelledby="scanner-title">
+    <div class="dialog__header">
+      <h2 id="scanner-title">Scan ISBN</h2>
+      <button type="button" class="btn btn--icon btn--ghost" data-close aria-label="Close scanner">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <div class="dialog__body">
+      <div class="scanner" id="scanner-view">
+        <video id="scanner-video" playsinline muted></video>
+        <div class="scanner__guide" aria-hidden="true"><span class="scanner__line"></span></div>
+        <div class="scanner__overlay" id="scanner-overlay" hidden>
+          <p id="scanner-overlay-text"></p>
+        </div>
+      </div>
+      <p class="scanner__status" id="scanner-status" role="status">Starting camera…</p>
+      <p class="hint">Hold the book steady and point the camera at the barcode on the back cover (the one starting with 978 or 979). Good light helps.</p>
+      <div class="banner banner--error" id="scanner-error" role="alert" hidden></div>
+      <div class="banner banner--warn" id="scanner-notfound" hidden>
+        <p id="scanner-notfound-text"></p>
+        <button type="button" class="btn btn--small" id="scanner-manual-entry">Enter details manually</button>
+      </div>
+      <form id="manual-isbn-form" class="manual" novalidate>
+        <label for="manual-isbn">Or type the ISBN</label>
+        <div class="manual__row">
+          <input id="manual-isbn" name="isbn" inputmode="numeric" autocomplete="off" placeholder="978… or 10-digit ISBN" maxlength="20">
+          <button type="submit" class="btn btn--primary" id="manual-isbn-submit">Look up</button>
+        </div>
+      </form>
+    </div>
+    <div class="dialog__footer">
+      <button type="button" class="btn" id="scanner-toggle">Stop camera</button>
+      <button type="button" class="btn btn--primary" data-close>Close scanner</button>
+    </div>
+  </dialog>
+
+  <!-- Add / edit book -->
+  <dialog id="book-dialog" class="dialog dialog--wide" aria-labelledby="book-dialog-title">
+    <form id="book-form" novalidate>
+      <div class="dialog__header">
+        <h2 id="book-dialog-title">Add book</h2>
+        <button type="button" class="btn btn--icon btn--ghost" data-close aria-label="Cancel">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <div class="dialog__body">
+        <p class="banner banner--info" id="book-source-note" hidden></p>
+        <div class="preview" id="book-preview">
+          <img class="preview__cover" id="preview-cover" alt="" width="96" height="144">
+          <div class="preview__text">
+            <p class="preview__title" id="preview-title"></p>
+            <p class="preview__meta" id="preview-authors"></p>
+            <p class="preview__meta" id="preview-publisher"></p>
+            <p class="preview__meta preview__isbn" id="preview-isbn"></p>
+            <div class="preview__actions">
+              <button type="button" class="btn btn--small" id="cover-photo-btn">Add cover photo</button>
+              <button type="button" class="btn btn--small btn--ghost" id="cover-photo-remove" hidden>Remove photo</button>
+            </div>
+          </div>
+        </div>
+        <div class="banner banner--error" id="book-error" role="alert" hidden></div>
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="f-isbn13">ISBN-13</label>
+            <input id="f-isbn13" name="isbn13" inputmode="numeric" autocomplete="off" maxlength="20">
+            <p class="form-field__error" id="f-isbn13-error" hidden></p>
+          </div>
+          <div class="form-field">
+            <label for="f-isbn10">ISBN-10</label>
+            <input id="f-isbn10" name="isbn10" autocomplete="off" maxlength="20">
+            <p class="form-field__error" id="f-isbn10-error" hidden></p>
+          </div>
+          <div class="form-field form-field--full form-field--lookup" id="lookup-row" hidden>
+            <button type="button" class="btn btn--small" id="book-lookup">Look up details online</button>
+            <span class="hint" id="book-lookup-status" role="status"></span>
+          </div>
+          <div class="form-field form-field--full">
+            <label for="f-title">Title <span class="req" aria-hidden="true">*</span></label>
+            <input id="f-title" name="title" required maxlength="300" autocomplete="off">
+            <p class="form-field__error" id="f-title-error" hidden></p>
+          </div>
+          <div class="form-field form-field--full">
+            <label for="f-subtitle">Subtitle</label>
+            <input id="f-subtitle" name="subtitle" maxlength="300" autocomplete="off">
+          </div>
+          <div class="form-field form-field--full">
+            <label for="f-authors">Authors</label>
+            <input id="f-authors" name="authors" autocomplete="off" aria-describedby="f-authors-hint">
+            <p class="hint" id="f-authors-hint">Separate several authors with commas.</p>
+          </div>
+          <div class="form-field">
+            <label for="f-publisher">Publisher</label>
+            <input id="f-publisher" name="publisher" maxlength="200" autocomplete="off">
+          </div>
+          <div class="form-field">
+            <label for="f-publishedDate">Published</label>
+            <input id="f-publishedDate" name="publishedDate" maxlength="32" placeholder="YYYY or YYYY-MM-DD" autocomplete="off">
+          </div>
+          <div class="form-field">
+            <label for="f-pageCount">Pages</label>
+            <input id="f-pageCount" name="pageCount" type="number" min="0" max="100000" step="1" inputmode="numeric">
+            <p class="form-field__error" id="f-pageCount-error" hidden></p>
+          </div>
+          <div class="form-field">
+            <label for="f-language">Language</label>
+            <input id="f-language" name="language" maxlength="16" placeholder="en" autocomplete="off">
+            <p class="form-field__error" id="f-language-error" hidden></p>
+          </div>
+          <div class="form-field form-field--full">
+            <label for="f-categories">Categories</label>
+            <input id="f-categories" name="categories" autocomplete="off" aria-describedby="f-categories-hint">
+            <p class="hint" id="f-categories-hint">Separate with commas.</p>
+          </div>
+          <div class="form-field form-field--full">
+            <label for="f-coverImage">Cover image link</label>
+            <input id="f-coverImage" name="coverImage" type="url" inputmode="url" maxlength="2000" placeholder="https://… (or use “Add cover photo” above)" autocomplete="off">
+            <p class="form-field__error" id="f-coverImage-error" hidden></p>
+          </div>
+          <div class="form-field form-field--full">
+            <label for="f-description">Description</label>
+            <textarea id="f-description" name="description" rows="5" maxlength="10000"></textarea>
+          </div>
+          <div class="form-field form-field--full">
+            <label class="check"><input type="checkbox" id="f-read" name="read"> <span>I have read this book</span></label>
+          </div>
+          <div class="form-field form-field--full">
+            <label for="f-googleBooksId">Google Books ID</label>
+            <input id="f-googleBooksId" name="googleBooksId" maxlength="100" autocomplete="off">
+          </div>
+        </div>
+      </div>
+      <div class="dialog__footer">
+        <button type="button" class="btn" data-close id="book-cancel">Cancel</button>
+        <button type="submit" class="btn btn--primary" id="book-submit">Add to My Library</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Details -->
+  <dialog id="details-dialog" class="dialog dialog--wide" aria-labelledby="details-title">
+    <div class="dialog__header">
+      <p class="hint">Book details</p>
+      <button type="button" class="btn btn--icon btn--ghost" data-close aria-label="Close details">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <div class="dialog__body" id="details-body"></div>
+    <div class="dialog__footer">
+      <button type="button" class="btn btn--danger" id="details-delete">Delete</button>
+      <button type="button" class="btn" id="details-toggle-read">Mark as read</button>
+      <button type="button" class="btn btn--primary" id="details-edit">Edit</button>
+    </div>
+  </dialog>
+
+  <!-- Cover photo -->
+  <dialog id="cover-dialog" class="dialog dialog--cover" aria-labelledby="cover-title">
+    <div class="dialog__header">
+      <h2 id="cover-title">Cover photo</h2>
+      <button type="button" class="btn btn--icon btn--ghost" data-close aria-label="Close">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <div class="dialog__body">
+      <div class="banner banner--error" id="cover-error" role="alert" hidden></div>
+      <section id="cover-capture">
+        <div class="cover-camera" id="cover-camera">
+          <video id="cover-video" playsinline muted></video>
+          <canvas id="cover-overlay" class="cover-camera__overlay" aria-hidden="true"></canvas>
+          <div class="cover-camera__guide" aria-hidden="true"></div>
+        </div>
+        <div class="cover-progress" aria-hidden="true"><span id="cover-progress-bar"></span></div>
+        <p class="scanner__status" id="cover-status" role="status">Starting camera…</p>
+        <label class="check cover-auto"><input type="checkbox" id="cover-auto" checked> <span>Find the book and take the photo automatically</span></label>
+        <p class="hint">No camera, or want a sharper picture? Use <strong>Choose photo</strong>. On a phone this opens your camera app or photo library.</p>
+      </section>
+      <section id="cover-crop" hidden>
+        <canvas id="cover-stage" class="cover-stage" tabindex="0" aria-label="Crop area. Drag to move the picture, use the slider or pinch to zoom."></canvas>
+        <div class="cover-zoom">
+          <label for="cover-zoom">Zoom</label>
+          <input type="range" id="cover-zoom" min="1" max="6" step="0.01" value="1">
+        </div>
+        <p class="hint" id="cover-crop-note">Drag the picture and zoom until the white frame lines up with the edges of the cover.</p>
+        <div class="cover-crop-tools">
+          <button type="button" class="btn btn--small" id="cover-adjust">Adjust outline…</button>
+          <button type="button" class="btn btn--small btn--ghost" id="cover-original" hidden>Use original photo instead</button>
+        </div>
+      </section>
+      <section id="cover-outline" hidden>
+        <canvas id="cover-outline-stage" class="cover-stage cover-stage--outline" aria-label="Book outline editor. Drag each white dot onto a corner of the book."></canvas>
+        <p class="hint" id="cover-outline-note">Drag each white dot onto the matching corner of the book: top-left, top-right, bottom-right, bottom-left.</p>
+      </section>
+      <input type="file" id="cover-file" accept="image/*" hidden>
+    </div>
+    <div class="dialog__footer">
+      <button type="button" class="btn" id="cover-choose">Choose photo…</button>
+      <button type="button" class="btn btn--primary" id="cover-shoot">Take photo</button>
+      <button type="button" class="btn" id="cover-retake" hidden>Retake</button>
+      <button type="button" class="btn" id="cover-rotate" hidden>Rotate</button>
+      <button type="button" class="btn btn--primary" id="cover-use" hidden>Use this cover</button>
+      <button type="button" class="btn" id="cover-outline-back" hidden>Back</button>
+      <button type="button" class="btn btn--primary" id="cover-outline-apply" hidden>Straighten</button>
+    </div>
+  </dialog>
+
+  <!-- Confirm -->
+  <dialog id="confirm-dialog" class="dialog dialog--small" aria-labelledby="confirm-title" aria-describedby="confirm-text">
+    <div class="dialog__header"><h2 id="confirm-title">Are you sure?</h2></div>
+    <div class="dialog__body"><p id="confirm-text"></p></div>
+    <div class="dialog__footer">
+      <button type="button" class="btn" id="confirm-cancel">Cancel</button>
+      <button type="button" class="btn btn--danger" id="confirm-ok">Delete</button>
+    </div>
+  </dialog>
+
+  <!-- Import -->
+  <dialog id="import-dialog" class="dialog dialog--small" aria-labelledby="import-title">
+    <div class="dialog__header">
+      <h2 id="import-title">Import backup</h2>
+      <button type="button" class="btn btn--icon btn--ghost" data-close aria-label="Cancel import">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <div class="dialog__body">
+      <p id="import-file-name" class="hint"></p>
+      <ul class="import-summary" id="import-summary"></ul>
+      <div class="banner banner--error" id="import-error" role="alert" hidden></div>
+      <fieldset class="choices" id="import-choices">
+        <legend class="sr-only">How should the backup be applied?</legend>
+        <label class="choice">
+          <input type="radio" name="import-mode" value="merge" checked>
+          <span><strong>Add to my library</strong><br><span class="hint">Adds new books and skips any ISBN you already have. Existing books are never changed.</span></span>
+        </label>
+        <label class="choice">
+          <input type="radio" name="import-mode" value="replace">
+          <span><strong>Restore (replace my library)</strong><br><span class="hint">Replaces everything with the backup. A copy of the current file is kept as books.json.bak.</span></span>
+        </label>
+      </fieldset>
+    </div>
+    <div class="dialog__footer">
+      <button type="button" class="btn" data-close>Cancel</button>
+      <button type="button" class="btn btn--primary" id="import-apply">Import</button>
+    </div>
+  </dialog>
+</body>
+</html>
