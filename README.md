@@ -44,7 +44,6 @@ Other things you can do:
 * **Search** by title, author, ISBN (hyphens optional), publisher or category; **filter** by category and language; **sort** by title, author, publication date or date added; switch between **grid** and **list** views.
 * Click a book for its full details, then **Edit** or **Delete** (deleting asks for confirmation).
 * Track what you have read: tick **I have read this book** when adding or editing, or press **Mark as read** in a book's details. Read books show a green tick on their cover, the **Status** filter shows only read or unread books, and the line under the toolbar shows your totals. Books saved before this feature existed count as not read.
-* **Export** downloads the whole library as a JSON file. **Import** reads such a file and shows a summary first, then lets you either **add** the new books (existing ISBNs are never overwritten) or **restore**, which replaces the library with the backup. A restore keeps the previous file as `data/books.json.bak`.
 
 Scanning a book you already own opens its existing entry instead of adding a duplicate. Duplicates are detected by ISBN whatever the form (ISBN-10 or ISBN-13, with or without hyphens), and ISBN checksums are validated.
 
@@ -125,7 +124,7 @@ Without a key, Google applies a shared anonymous quota that is sometimes exhaust
 * A **missing** file is treated as an empty library and created on first start.
 * An **invalid** file (broken JSON, no `books` list) is never overwritten. The server refuses to start, or answers with a clear error, until you fix or delete the file or copy `books.json.bak` over it.
 * You can edit the file by hand while the server is stopped.
-* **Cover photos live inside `books.json`** as small embedded JPEGs (at most 400 x 600 pixels, usually 10 to 60 KB each), so export, import and restore keep them with no extra files. A library with hundreds of photographed covers will make the file a few megabytes; that is fine for a personal collection.
+* **Cover photos live inside `books.json`** as small embedded JPEGs (at most 400 x 600 pixels, usually 10 to 60 KB each), so they need no extra files. A library with hundreds of photographed covers will make the file a few megabytes; that is fine for a personal collection.
 
 ## API
 
@@ -165,7 +164,7 @@ home_library/
 │   ├── index.html
 │   ├── css/styles.css
 │   ├── js/
-│   │   ├── app.js           wiring: toolbar, dialogs, forms, scanner and import flows
+│   │   ├── app.js           wiring: toolbar, dialogs, forms and scanner flows
 │   │   ├── scanner.js       camera + barcode detection (BarcodeDetector / ZXing)
 │   │   ├── cover.js         cover photo dialog: camera or file, auto-capture, then crop
 │   │   ├── detect.js        book outline detection and perspective correction (no DOM)
