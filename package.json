@@ -3,17 +3,90 @@
   "version": "1.0.0",
   "description": "A simple personal home library: scan ISBN barcodes, fetch book details from Google Books, and keep everything in a local JSON file.",
   "type": "module",
-  "main": "server.js",
+  "main": "electron/main.js",
   "private": true,
   "scripts": {
     "start": "node server.js",
     "test": "node --test",
-    "deploy": "sh scripts/deploy.sh"
+    "deploy": "sh scripts/deploy.sh",
+    "desktop": "electron .",
+    "dist:mac": "electron-builder --mac --dir",
+    "dist:mac:dmg": "electron-builder --mac --arm64 --x64",
+    "dist:win": "electron-builder --win nsis"
   },
   "engines": {
     "node": ">=18"
   },
   "dependencies": {
-    "@zxing/library": "^0.21.3"
+    "@zxing/library": "^0.21.3",
+    "electron-updater": "^6.8.11"
+  },
+  "devDependencies": {
+    "electron": "^45.0.0",
+    "electron-builder": "^26.18.0"
+  },
+  "author": "Shelfie",
+  "build": {
+    "appId": "com.shelfie.app",
+    "productName": "Shelfie Home Library",
+    "directories": {
+      "output": "dist/electron",
+      "buildResources": "build"
+    },
+    "files": [
+      "electron/**",
+      "server.js",
+      "store.js",
+      "validate.js",
+      "open-library.js",
+      "public/**",
+      "package.json",
+      "node_modules/@zxing/library/umd/index.min.js",
+      "node_modules/@zxing/library/LICENSE"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "build/icon.png",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "extendInfo": {
+        "NSCameraUsageDescription": "Shelfie Home Library uses the camera to scan book barcodes."
+      },
+      "artifactName": "Shelfie-${version}-mac-${arch}.${ext}"
+    },
+    "win": {
+      "icon": "build/icon.png",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "Shelfie-Setup-${version}-win-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "publish": {
+      "provider": "generic",
+      "url": "https://updates.example.com/home-library"
+    }
   }
 }

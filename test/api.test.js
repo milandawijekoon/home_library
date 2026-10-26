@@ -92,6 +92,7 @@ test('health check and empty library (file created on init)', async () => {
   const health = await api('GET', '/api/health');
   assert.equal(health.status, 200);
   assert.equal(health.json.status, 'ok');
+  assert.match(health.json.version, /^\d+\.\d+\.\d+$/);
   assert.deepEqual((await api('GET', '/api/books')).json, { books: [] });
   const file = JSON.parse(await fs.readFile(path.join(scratch, 'data', 'books.json'), 'utf8'));
   assert.deepEqual(file, { books: [] });

@@ -1,6 +1,7 @@
-// Home Library: a tiny dependency-free HTTP server (Node built-ins only).
+// Shelfie: a tiny dependency-free HTTP server (Node built-ins only).
 // Serves the static front end from ./public and a small JSON API backed by data/books.json.
 import http from 'node:http';
+import fsSync from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -11,6 +12,7 @@ import { lookupOpenLibrary } from './open-library.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(ROOT, 'public');
+const VERSION = JSON.parse(fsSync.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version;
 const ZXING_FILE = path.join(ROOT, 'node_modules', '@zxing', 'library', 'umd', 'index.min.js');
 
 const MAX_BODY_BYTES = 768 * 1024; // a single book (may carry a ~300 KB cover photo)
@@ -292,7 +294,21 @@ async function handleApi(request, response, pathname, searchParams, context) {
   if (pathname === '/api/health') {
     allow('GET');
     const count = (await store.list()).length;
-    return sendJson(response, 200, { status: 'ok', books: count, lookupKeyConfigured: Boolean(options.googleBooksKey) });
+    return sendJson(response, 200, {
+      status: 'ok',
+      version: VERSION,
+      books: count,
+      lookupKeyConfigured: Boolean(options.googleBooksKey),
+      canQuit: Boolean(options.onQuit),
+    });
+  }
+
+  // Only the packaged desktop launcher provides onQuit; a plain `npm start` has no such route.
+  if (pathname === '/api/quit' && options.onQuit) {
+    allow('POST');
+    sendJson(response, 200, { status: 'stopping' });
+    response.on('finish', options.onQuit);
+    return;
   }
 
   if (pathname === '/api/books') {
@@ -376,6 +392,7 @@ export function createApp(config = {}) {
     googleViewApiUrl: config.googleViewApiUrl === undefined ? 'https://books.google.com/books' : config.googleViewApiUrl,
     // Pass false to turn the Open Library fallback off.
     openLibraryUrl: config.openLibraryUrl === undefined ? 'https://openlibrary.org/api/books' : config.openLibraryUrl,
+    onQuit: config.onQuit,
   };
   const store = new BookStore(options.dataFile);
   // When bound to loopback only, reject unexpected Host headers (DNS-rebinding defence).
@@ -457,7 +474,7 @@ if (isMain) {
   });
   server.listen(port, host, () => {
     const shown = host === '0.0.0.0' || host === '::' || host === '127.0.0.1' ? 'localhost' : host;
-    console.log(`My Home Library is running at http://${shown}:${port}`);
+    console.log(`Shelfie is running at http://${shown}:${port}`);
     if (!LOOPBACK.has(host)) {
       console.log('Warning: the server is reachable from other devices on your network and has no login.');
     }

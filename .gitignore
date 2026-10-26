@@ -2,3 +2,28 @@ node_modules/
 data/books.json.bak
 data/.*.tmp
 .DS_Store
+
+# Environment files and keys / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.secret
+*.secrets
+secrets.*
+credentials.*
+*api-key*
+*apikey*
+
+# Library data (personal)
+data/*.json
+data/*.bak
+data/.*.tmp
+
+# Build output
+dist/
+.cache/

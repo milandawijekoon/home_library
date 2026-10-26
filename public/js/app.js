@@ -1,4 +1,4 @@
-// My Home Library — application wiring.
+// Shelfie Home Library — application wiring.
 import { normalizeIsbn, isValidIsbn10, isValidIsbn13, isbn10To13, isbn13To10, canonicalIsbn } from './isbn.js';
 import { lookupBook } from './google-books.js';
 import { captureCover, initCoverCapture } from './cover.js';
@@ -194,6 +194,23 @@ for (const [id, view] of [['#view-grid', 'grid'], ['#view-list', 'list']]) {
 $('#btn-retry').addEventListener('click', loadBooks);
 $('#btn-scan').addEventListener('click', openScanner);
 $('#btn-add').addEventListener('click', () => openBookForm({ mode: 'add', canLookup: true }));
+
+// The desktop app has no window of its own, so it needs a way to stop the local server.
+fetch('/api/health')
+  .then((res) => res.json())
+  .then((health) => {
+    if (health.version) {
+      $('#app-version').textContent = `v${health.version}`;
+      $('#app-version').hidden = false;
+    }
+    if (health.canQuit) $('#btn-quit').hidden = false;
+  })
+  .catch(() => {});
+$('#btn-quit').addEventListener('click', async () => {
+  if (!confirm('Quit Shelfie Home Library? Your books are saved. Open the app again to continue.')) return;
+  await fetch('/api/quit', { method: 'POST' }).catch(() => {});
+  document.body.innerHTML = '<p style="font:16px system-ui;padding:3rem;text-align:center">Shelfie Home Library has stopped. You can close this tab.</p>';
+});
 
 // ---------------------------------------------------------------------------
 // Details
