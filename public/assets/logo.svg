@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="64 64 896 896">
   <defs>
     <linearGradient id="bg" x1="0.15" y1="0" x2="0.85" y2="1">
-      <stop offset="0" stop-color="#2c6a58"/>
-      <stop offset="1" stop-color="#0d2b25"/>
+      <stop offset="0" stop-color="#3b5380"/>
+      <stop offset="1" stop-color="#0f1626"/>
     </linearGradient>
     <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#ffffff" stop-opacity="0.16"/>
@@ -18,11 +18,11 @@
   <g transform="translate(0 30)">
   <!-- book spines -->
   <rect x="240" y="300" width="112" height="400" rx="16" fill="#f6efdc"/>
-  <rect x="380" y="220" width="112" height="480" rx="16" fill="#9fcdb8"/>
+  <rect x="380" y="220" width="112" height="480" rx="16" fill="#9fb4d9"/>
   <rect x="520" y="340" width="112" height="360" rx="16" fill="#f6efdc"/>
   <rect x="660" y="268" width="112" height="432" rx="16" fill="#d9b36c"/>
   <!-- spine bands -->
-  <g fill="#0d2b25" fill-opacity="0.22">
+  <g fill="#0f1626" fill-opacity="0.22">
     <rect x="240" y="352" width="112" height="14"/>
     <rect x="380" y="272" width="112" height="14"/>
     <rect x="520" y="392" width="112" height="14"/>
