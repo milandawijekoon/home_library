@@ -57,7 +57,10 @@ test('starts on PORT with BOOKS_FILE, serves the app, and shuts down cleanly on 
   assert.deepEqual(JSON.parse(await fs.readFile(file, 'utf8')), { books: [] }); // created at start-up
 
   server.child.kill('SIGTERM');
-  assert.deepEqual(await server.exited, { code: 0, signal: null });
+  const exit = await server.exited;
+  // Windows has no POSIX signals: kill() terminates the process outright, so there is no handler to run.
+  if (process.platform === 'win32') assert.ok(exit.code === 0 || exit.signal === 'SIGTERM');
+  else assert.deepEqual(exit, { code: 0, signal: null });
 });
 
 test('refuses to start on a corrupt library file and leaves it untouched', async (testContext) => {
