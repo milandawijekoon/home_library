@@ -3,6 +3,7 @@
 // versions as "critical", which makes the update mandatory. Books are never touched.
 import electronUpdater from 'electron-updater';
 import { app, dialog, shell } from 'electron';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -11,6 +12,7 @@ const { autoUpdater } = electronUpdater;
 const CHECK_EVERY_MS = 4 * 60 * 60 * 1000;
 const CRITICAL_CHECK_EVERY_MS = 30 * 60 * 1000;
 const VERSION_RE = /^\d+\.\d+\.\d+$/;
+const DEFAULT_DOWNLOAD_PAGE = 'https://github.com/milandawijekoon/home_library/releases/latest';
 
 function compareVersions(a, b) {
   const x = a.split('.').map(Number);
@@ -21,6 +23,15 @@ function compareVersions(a, b) {
 
 // electron-builder strips the "build" section from the packaged package.json, but it writes the
 // publish settings to app-update.yml beside the app, which is what electron-updater itself reads.
+// macOS only installs updates for apps signed with a Developer ID. Until the app is signed, the app
+// tells the user about the new version and opens the download page instead of installing it itself.
+function canSelfInstall() {
+  if (process.platform !== 'darwin') return true;
+  const bundle = path.resolve(app.getPath('exe'), '..', '..', '..');
+  const out = spawnSync('codesign', ['-dv', '--verbose=4', bundle], { encoding: 'utf8' });
+  return /Authority=Developer ID Application/.test(`${out.stderr}${out.stdout}`);
+}
+
 function feedBaseUrl() {
   if (process.env.SHELFIE_UPDATE_URL) return process.env.SHELFIE_UPDATE_URL.replace(/\/+$/, '');
   try {
@@ -43,14 +54,16 @@ export function initUpdater({ getWindow }) {
   if (!enabled) return { checkNow: async () => {}, enabled };
 
   if (process.env.SHELFIE_UPDATE_URL) autoUpdater.setFeedURL({ provider: 'generic', url: base });
-  autoUpdater.autoDownload = true;
-  autoUpdater.autoInstallOnAppQuit = true;
+  const selfInstall = canSelfInstall();
+  autoUpdater.autoDownload = selfInstall;
+  autoUpdater.autoInstallOnAppQuit = selfInstall;
   autoUpdater.logger = { info: log, warn: log, error: log, debug() {} };
 
   let critical = false;
   let config = null;
   let manual = false;
   let timer = null;
+  let promptedVersion = '';
 
   const box = (options) => {
     const win = getWindow();
@@ -74,6 +87,9 @@ export function initUpdater({ getWindow }) {
     timer.unref();
   }
 
+  const downloadPage = () => (/^https:\/\//.test(config?.downloadUrl ?? '') ? config.downloadUrl : DEFAULT_DOWNLOAD_PAGE);
+
+  // Critical: blocks until the user downloads the new version, then quits.
   async function requireManualDownload() {
     const { response } = await box({
       type: 'warning',
@@ -82,8 +98,22 @@ export function initUpdater({ getWindow }) {
       message: 'An important update is required',
       detail: config?.message || 'This version is no longer supported. Please install the latest version. Your books are not affected.',
     });
-    if (response === 0 && /^https:\/\//.test(config?.downloadUrl ?? '')) await shell.openExternal(config.downloadUrl);
+    if (response === 0) await shell.openExternal(downloadPage());
     app.quit();
+  }
+
+  // Unsigned macOS builds: say a new version exists and open the download page.
+  async function offerManualDownload(version) {
+    log(`manual download offered ${version} critical=${critical}`);
+    if (critical) return requireManualDownload();
+    if (!manual && promptedVersion === version) return undefined;
+    promptedVersion = version;
+    const { response } = await box({
+      type: 'info', buttons: ['Open download page', 'Later'], defaultId: 0, cancelId: 1,
+      message: `Version ${version} is available`, detail: 'Download it, then open the installer. Your books are safe and will not be changed.',
+    });
+    if (response === 0) await shell.openExternal(downloadPage());
+    return undefined;
   }
 
   autoUpdater.on('update-downloaded', async (info) => {
@@ -114,6 +144,8 @@ export function initUpdater({ getWindow }) {
       if (!result?.isUpdateAvailable) {
         if (critical) await requireManualDownload();
         else if (manual) await box({ type: 'info', message: "You're up to date", detail: `Version ${app.getVersion()} is the latest.` });
+      } else if (!selfInstall) {
+        await offerManualDownload(result.updateInfo.version);
       }
     } catch (err) {
       log(`check failed: ${err.message}`);

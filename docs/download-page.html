@@ -1,0 +1,40 @@
+<!-- Example download page. Paste the markup and script into your site, or serve it as is.
+     It reads GitHub's public API, so it always shows the newest published release. -->
+<section id="download" aria-live="polite">
+  <h2>Download Shelfie Home Library</h2>
+  <p id="dl-status">Loading the latest version…</p>
+  <ul id="dl-list" hidden></ul>
+  <p><a id="dl-all" href="https://github.com/milandawijekoon/home_library/releases">All versions and release notes</a></p>
+</section>
+<script>
+(async () => {
+  const targets = [
+    { label: 'Windows (64-bit)', test: /win-x64\.exe$/ },
+    { label: 'Mac, Apple silicon (M1 or later)', test: /mac-arm64\.dmg$/ },
+    { label: 'Mac, Intel', test: /mac-x64\.dmg$/ },
+  ];
+  const status = document.getElementById('dl-status');
+  const list = document.getElementById('dl-list');
+  try {
+    const res = await fetch('https://api.github.com/repos/milandawijekoon/home_library/releases/latest', {
+      headers: { Accept: 'application/vnd.github+json' },
+    });
+    if (!res.ok) throw new Error(String(res.status));
+    const release = await res.json();
+    for (const { label, test } of targets) {
+      const asset = release.assets.find((a) => test.test(a.name));
+      if (!asset) continue;
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = asset.browser_download_url;
+      a.textContent = `${label} — ${(asset.size / 1048576).toFixed(0)} MB`;
+      li.append(a);
+      list.append(li);
+    }
+    status.textContent = `Version ${release.tag_name.replace(/^v/, '')}, released ${new Date(release.published_at).toLocaleDateString()}`;
+    list.hidden = false;
+  } catch {
+    status.textContent = 'Could not load the latest version. Use the link below.';
+  }
+})();
+</script>

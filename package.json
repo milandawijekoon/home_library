@@ -86,7 +86,7 @@
     },
     "publish": {
       "provider": "generic",
-      "url": "https://updates.example.com/home-library"
+      "url": "https://downloads.milandawijekoon.com/home-library"
     }
   }
 }
