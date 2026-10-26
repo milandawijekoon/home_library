@@ -51,6 +51,7 @@ Not sure which Mac you have? Open the Apple menu, then **About This Mac**: "Appl
 **Windows**
 1. Run the downloaded `.exe` and follow the installer.
 2. If Windows SmartScreen warns that the app is unrecognised, choose **More info**, then **Run anyway**.
+3. **If Windows says "Smart App Control blocked an app that may be unsafe":** Smart App Control blocks every app without a trusted publisher signature and has no "Run anyway" button. Until Shelfie's installer is code-signed, the only way to run it is to turn Smart App Control off: open **Windows Security**, then **App & browser control**, then **Smart App Control settings**, and choose **Off**. Windows does not let you turn it back on without resetting the PC, so only do this if you are comfortable with that. If Smart App Control is not enabled on your PC, you will only see the SmartScreen warning above.
 
 ## Use
 
@@ -70,3 +71,9 @@ The app checks for updates in the background and offers to restart when a new ve
 * Windows: `%APPDATA%\HomeLibrary`
 
 The only network requests are to look up a book's details by its ISBN (Google Books, with Open Library as a fallback) and to check for new app versions. Uninstalling the app does not delete your library; remove the folder above if you want it gone.
+
+## License and code signing
+
+Shelfie is open source under the [MIT License](LICENSE).
+
+Code signing policy: Windows installers are built from this repository by GitHub Actions and signed through SignPath. Free code signing provided by [SignPath.io](https://signpath.io), certificate by [SignPath Foundation](https://signpath.org). Only the maintainer, [milandawijekoon](https://github.com/milandawijekoon), approves signing requests. The app only contacts the services listed under Privacy.

@@ -5,6 +5,7 @@
   "type": "module",
   "main": "electron/main.js",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "start": "node server.js",
     "test": "node --test",
