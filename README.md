@@ -72,8 +72,6 @@ The app checks for updates in the background and offers to restart when a new ve
 
 The only network requests are to look up a book's details by its ISBN (Google Books, with Open Library as a fallback) and to check for new app versions. Uninstalling the app does not delete your library; remove the folder above if you want it gone.
 
-## License and code signing
+## License
 
 Shelfie is open source under the [MIT License](LICENSE).
-
-Code signing policy: Windows installers are built from this repository by GitHub Actions and signed through SignPath. Free code signing provided by [SignPath.io](https://signpath.io), certificate by [SignPath Foundation](https://signpath.org). Only the maintainer, [milandawijekoon](https://github.com/milandawijekoon), approves signing requests. The app only contacts the services listed under Privacy.
