@@ -190,12 +190,8 @@ test('read flag: defaults to false, can be set, toggled, and must be a boolean',
     assert.equal(response.status, 400, String(bad));
     assert.match(response.json.details.join(' '), /read must be true or false/);
   }
-  // import keeps the flag; books from older backups (no flag) come in as not read
-  const imp = await api('POST', '/api/import', { books: [
-    { isbn13: '9780596517748', title: 'JS Good Parts', read: true },
-    { isbn13: '9781491950296', title: 'Old backup entry' },
-  ] });
-  assert.equal(imp.json.added, 2);
+  await api('POST', '/api/books', { isbn13: '9780596517748', title: 'JS Good Parts', read: true });
+  await api('POST', '/api/books', { isbn13: '9781491950296', title: 'Old backup entry' });
   const books = (await api('GET', '/api/books')).json.books;
   assert.equal(books.find((book) => book.title === 'JS Good Parts').read, true);
   assert.equal(books.find((book) => book.title === 'Old backup entry').read, false);
@@ -275,44 +271,6 @@ test('static files: served, SPA root, no traversal, no dotfiles, no data dir', a
   assert.equal(status, 404);
   assert.equal((await fetch(base + '/vendor/zxing.min.js')).status, 200);
   assert.equal((await fetch(base + '/', { method: 'POST' })).status, 405);
-});
-
-test('import: dry run, merge skips duplicates, invalid reported, replace keeps backup', async () => {
-  const backup = [
-    { ...matilda, title: 'SHOULD NOT OVERWRITE' },
-    { isbn13: '9780306406157', title: 'New one', dateAdded: '2020-05-05T00:00:00Z', id: 'keep-my-id' },
-    { isbn13: '9780306406157', title: 'Dup inside file' },
-    { isbn13: '123', title: 'Bad isbn' },
-    'not an object',
-  ];
-  const dry = await api('POST', '/api/import', { books: backup, dryRun: true });
-  assert.deepEqual([dry.json.added, dry.json.duplicates, dry.json.invalid, dry.json.total], [1, 2, 2, 2]);
-  assert.equal((await api('GET', '/api/books')).json.books.length, 1);
-
-  const merged = await api('POST', '/api/import', { books: backup });
-  assert.equal(merged.status, 200);
-  assert.equal(merged.json.added, 1);
-  const books = (await api('GET', '/api/books')).json.books;
-  assert.equal(books.length, 2);
-  assert.equal(books.find((book) => book.isbn13 === matilda.isbn13).title, 'Matilda (2nd ed.)');
-  const imported = books.find((book) => book.id === 'keep-my-id');
-  assert.equal(imported.dateAdded, '2020-05-05T00:00:00.000Z');
-
-  assert.equal((await api('POST', '/api/import', { books: 'nope' })).status, 400);
-  assert.equal((await api('POST', '/api/import', [{ isbn13: '1', title: 'x' }])).json.added, 0);
-  const emptyReplace = await api('POST', '/api/import', { books: [{ title: 'bad' }], mode: 'replace' });
-  assert.equal(emptyReplace.status, 400);
-  assert.equal((await api('GET', '/api/books')).json.books.length, 2);
-
-  const replaced = await api('POST', '/api/import', { books: [backup[1]], mode: 'replace' });
-  assert.equal(replaced.json.total, 1);
-  assert.equal((await api('GET', '/api/books')).json.books.length, 1);
-  const bak = JSON.parse(await fs.readFile(path.join(scratch, 'data', 'books.json.bak'), 'utf8'));
-  assert.equal(bak.books.length, 2);
-
-  const exp = await api('GET', '/api/export');
-  assert.match(exp.headers.get('content-disposition'), /attachment; filename="home_library-\d{4}-\d{2}-\d{2}\.json"/);
-  assert.equal(exp.json.books.length, 1);
 });
 
 test('concurrent writes do not lose books', async () => {

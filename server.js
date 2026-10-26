@@ -16,7 +16,6 @@ const VERSION = JSON.parse(fsSync.readFileSync(path.join(ROOT, 'package.json'), 
 const ZXING_FILE = path.join(ROOT, 'node_modules', '@zxing', 'library', 'umd', 'index.min.js');
 
 const MAX_BODY_BYTES = 768 * 1024; // a single book (may carry a ~300 KB cover photo)
-const MAX_IMPORT_BYTES = 20 * 1024 * 1024; // a whole-library backup
 const LOOKUP_TIMEOUT_MS = 10_000;
 
 const MIME = {
@@ -299,16 +298,7 @@ async function handleApi(request, response, pathname, searchParams, context) {
       version: VERSION,
       books: count,
       lookupKeyConfigured: Boolean(options.googleBooksKey),
-      canQuit: Boolean(options.onQuit),
     });
-  }
-
-  // Only the packaged desktop launcher provides onQuit; a plain `npm start` has no such route.
-  if (pathname === '/api/quit' && options.onQuit) {
-    allow('POST');
-    sendJson(response, 200, { status: 'stopping' });
-    response.on('finish', options.onQuit);
-    return;
   }
 
   if (pathname === '/api/books') {
@@ -328,29 +318,6 @@ async function handleApi(request, response, pathname, searchParams, context) {
       return sendJson(response, 200, { book: await store.update(id, await readJsonBody(request, MAX_BODY_BYTES)) });
     }
     return sendJson(response, 200, { deleted: await store.remove(id) });
-  }
-
-  if (pathname === '/api/export') {
-    allow('GET');
-    const books = await store.list();
-    const stamp = new Date().toISOString().slice(0, 10);
-    return sendJson(
-      response,
-      200,
-      { app: 'home_library', version: 1, exportedAt: new Date().toISOString(), books },
-      { 'Content-Disposition': `attachment; filename="home_library-${stamp}.json"` },
-    );
-  }
-
-  if (pathname === '/api/import') {
-    allow('POST');
-    const body = await readJsonBody(request, MAX_IMPORT_BYTES);
-    const rawBooks = Array.isArray(body) ? body : body?.books;
-    const result = await store.importBooks(rawBooks, {
-      mode: body?.mode === undefined || Array.isArray(body) ? 'merge' : body.mode,
-      dryRun: body?.dryRun === true,
-    });
-    return sendJson(response, 200, result);
   }
 
   const lookupMatch = pathname.match(/^\/api\/lookup\/([^/]+)$/);
@@ -392,7 +359,6 @@ export function createApp(config = {}) {
     googleViewApiUrl: config.googleViewApiUrl === undefined ? 'https://books.google.com/books' : config.googleViewApiUrl,
     // Pass false to turn the Open Library fallback off.
     openLibraryUrl: config.openLibraryUrl === undefined ? 'https://openlibrary.org/api/books' : config.openLibraryUrl,
-    onQuit: config.onQuit,
   };
   const store = new BookStore(options.dataFile);
   // When bound to loopback only, reject unexpected Host headers (DNS-rebinding defence).

@@ -8,7 +8,6 @@
   "scripts": {
     "start": "node server.js",
     "test": "node --test",
-    "deploy": "sh scripts/deploy.sh",
     "desktop": "electron .",
     "dist:mac": "electron-builder --mac --dir",
     "dist:mac:dmg": "electron-builder --mac --arm64 --x64",
