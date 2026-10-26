@@ -40,6 +40,13 @@ Not sure which Mac you have? Open the Apple menu, then **About This Mac**: "Appl
 **macOS**
 1. Open the downloaded `.dmg` and drag **Shelfie Home Library** into **Applications**.
 2. Open it from Applications. The app is not yet signed by Apple, so the first time you may need to right-click it, choose **Open**, then confirm.
+3. **If macOS says the app is "damaged and can't be opened":** the app is not damaged. macOS marks every file downloaded from the internet with a "quarantine" flag, and on Apple silicon it refuses to run unsigned apps that carry it. Click **Cancel** (do not move it to the Trash), open **Terminal** (press Cmd+Space, type `Terminal`, press Return), paste this command, and press Return:
+
+   ```bash
+   xattr -cr "/Applications/Shelfie Home Library.app"
+   ```
+
+   The command only removes the quarantine flag from this one app; it changes nothing else and does not touch your books. It prints nothing when it works. Then open the app again (right-click, **Open**, if asked). You only need to do this once per downloaded version, and it is not needed once the app is signed by Apple.
 
 **Windows**
 1. Run the downloaded `.exe` and follow the installer.
