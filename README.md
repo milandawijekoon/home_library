@@ -2,6 +2,8 @@
 
 A simple desktop app for cataloguing the books you own. Scan the barcode on a book (or type its ISBN), and the title, author, cover and other details are filled in for you. Search, filter and sort your collection, and keep track of what you have read.
 
+![Your library as a grid of book covers](docs/screenshots/library-grid.png)
+
 ## Features
 
 * **Scan to add:** point your camera at a book's barcode, or type the ISBN.
@@ -10,7 +12,14 @@ A simple desktop app for cataloguing the books you own. Scan the barcode on a bo
 * **Cover photos:** photograph a book's cover and the app straightens and crops it for you.
 * **Find things fast:** search by title, author, ISBN, publisher or category; filter by category, language or read status; sort and switch between grid and list views.
 * **Reading status:** mark books as read and see your totals.
+* **Lending:** note who you have lent a book to.
 * **No duplicates:** scanning a book you already own opens its existing entry.
+
+| Book details | List view |
+| --- | --- |
+| ![Details of a single book](docs/screenshots/book-details.png) | ![Your library as a list](docs/screenshots/library-list.png) |
+
+*Screenshots show sample books only.*
 
 ## Download
 
