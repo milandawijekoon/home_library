@@ -6,6 +6,7 @@ import { app, dialog, shell } from 'electron';
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { compareVersions, isTrustedDownloadUrl } from './guards.js';
 
 const { autoUpdater } = electronUpdater;
 
@@ -14,13 +15,6 @@ const CRITICAL_CHECK_EVERY_MS = 30 * 60 * 1000;
 const VERSION_RE = /^\d+\.\d+\.\d+$/;
 const CONFIG_URL = 'https://raw.githubusercontent.com/milandawijekoon/home_library/main/release-config/app-config.json';
 const DEFAULT_DOWNLOAD_PAGE = 'https://github.com/milandawijekoon/home_library/releases/latest';
-
-function compareVersions(a, b) {
-  const x = a.split('.').map(Number);
-  const y = b.split('.').map(Number);
-  for (let i = 0; i < 3; i += 1) if (x[i] !== y[i]) return x[i] < y[i] ? -1 : 1;
-  return 0;
-}
 
 // electron-builder strips the "build" section from the packaged package.json, but it writes the
 // publish settings to app-update.yml beside the app, which is what electron-updater itself reads.
@@ -88,7 +82,7 @@ export function initUpdater({ getWindow }) {
     timer.unref();
   }
 
-  const downloadPage = () => (/^https:\/\//.test(config?.downloadUrl ?? '') ? config.downloadUrl : DEFAULT_DOWNLOAD_PAGE);
+  const downloadPage = () => (isTrustedDownloadUrl(config?.downloadUrl) ? config.downloadUrl : DEFAULT_DOWNLOAD_PAGE);
 
   // Critical: blocks until the user downloads the new version, then quits.
   async function requireManualDownload() {

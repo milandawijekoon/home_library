@@ -155,6 +155,13 @@ test('view preferences round-trip and fall back safely', (testContext) => {
   assert.deepEqual(loadPrefs(), { view: 'grid', sortBy: 'dateAdded', sortDir: 'desc' });
   savePrefs({ view: 'list', sortBy: 'title', sortDir: 'asc' });
   assert.deepEqual(loadPrefs(), { view: 'list', sortBy: 'title', sortDir: 'asc' });
+  // Only the three preferences are stored: never the library or the search text that live in the same state object.
+  savePrefs({ view: 'list', sortBy: 'title', sortDir: 'asc', books: [{ title: 'private' }], query: 'secret' });
+  assert.deepEqual(JSON.parse(store.get('home-library:prefs')), { view: 'list', sortBy: 'title', sortDir: 'asc' });
+  store.set('home-library:prefs', JSON.stringify({ sortBy: 'toString' })); // inherited property names are not sort fields
+  assert.equal(loadPrefs().sortBy, 'dateAdded');
+  store.set('home-library:prefs', 'null');
+  assert.equal(loadPrefs().view, 'grid');
   savePrefs({ view: 'x', sortBy: 'nope', sortDir: 'sideways' });
   assert.deepEqual(loadPrefs(), { view: 'grid', sortBy: 'dateAdded', sortDir: 'desc' });
   store.set('home-library:prefs', '{bad json');

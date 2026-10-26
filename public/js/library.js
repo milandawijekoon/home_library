@@ -195,7 +195,7 @@ export function loadPrefs() {
     const saved = JSON.parse(localStorage.getItem(PREFS_KEY) || '{}');
     return {
       view: saved.view === 'list' ? 'list' : 'grid',
-      sortBy: saved.sortBy in SORT_FIELDS ? saved.sortBy : defaults.sortBy,
+      sortBy: Object.hasOwn(SORT_FIELDS, saved.sortBy) ? saved.sortBy : defaults.sortBy,
       sortDir: saved.sortDir === 'asc' || saved.sortDir === 'desc' ? saved.sortDir : defaults.sortDir,
     };
   } catch {
@@ -203,9 +203,9 @@ export function loadPrefs() {
   }
 }
 
-export function savePrefs(prefs) {
+export function savePrefs({ view, sortBy, sortDir }) {
   try {
-    localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+    localStorage.setItem(PREFS_KEY, JSON.stringify({ view, sortBy, sortDir }));
   } catch {
     /* storage unavailable: preferences just won't persist */
   }

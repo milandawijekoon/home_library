@@ -239,6 +239,10 @@ test('request hardening: content type, size, bad JSON, methods, host, origin', a
   // Origin from another site is refused; same-origin is fine.
   assert.equal((await api('POST', '/api/books', matilda, { Origin: 'http://evil.example' })).status, 403);
   assert.equal((await api('GET', '/api/books', undefined, { Origin: base })).status, 200);
+  // "null" (sandboxed pages, file://) and malformed origins are refused too, not turned into a 500.
+  for (const origin of ['null', 'not a url', 'http://']) {
+    assert.equal((await api('GET', '/api/books', undefined, { Origin: origin })).status, 403, origin);
+  }
   // Host header must be loopback (DNS rebinding) — raw request, since fetch forbids setting Host.
   const status = await new Promise((resolve) => {
     const request = http.request({ host: '127.0.0.1', port: new URL(base).port, path: '/api/books', headers: { Host: 'evil.example' } }, (response) => { response.resume(); resolve(response.statusCode); });
@@ -415,4 +419,71 @@ test('lending: rejects bad loans', async () => {
   assert.equal(await bad([{ borrower: 'A', dateBorrowed: '2026-05-02', dateReturned: '2026-05-01' }]), 400);
   assert.equal(await bad([{ borrower: 'A', dateBorrowed: '2026-01-01' }, { borrower: 'B', dateBorrowed: '2026-02-01' }]), 400);
   assert.equal(await bad('nope'), 400);
+});
+
+test('security headers are on every kind of response', async () => {
+  const responses = [
+    await fetch(base + '/'),
+    await fetch(base + '/css/styles.css'),
+    await fetch(base + '/api/health'),
+    await fetch(base + '/api/nope'),
+    await fetch(base + '/missing.html'),
+    await fetch(base + '/', { method: 'POST' }),
+  ];
+  for (const response of responses) {
+    const label = `${response.url} ${response.status}`;
+    assert.equal(response.headers.get('x-content-type-options'), 'nosniff', label);
+    assert.equal(response.headers.get('referrer-policy'), 'no-referrer', label);
+    assert.equal(response.headers.get('cross-origin-resource-policy'), 'same-origin', label);
+    assert.equal(response.headers.get('permissions-policy'), 'camera=(self), microphone=(), geolocation=()', label);
+    const policy = response.headers.get('content-security-policy');
+    for (const directive of ["default-src 'self'", "script-src 'self'", "object-src 'none'", "frame-ancestors 'none'", "base-uri 'none'"]) {
+      assert.ok(policy.includes(directive), `${label} lacks ${directive}`);
+    }
+    assert.ok(!/unsafe-/.test(policy), label);
+  }
+  assert.equal((await fetch(base + '/api/health')).headers.get('cache-control'), 'no-store');
+  assert.equal((await fetch(base + '/api/books/x', { method: 'PATCH' })).headers.get('allow'), 'GET, PUT, DELETE');
+});
+
+test('static files: HEAD has no body, content types are exact, hidden and unknown paths 404', async () => {
+  const head = await fetch(base + '/js/app.js', { method: 'HEAD' });
+  assert.equal(head.status, 200);
+  assert.equal(await head.text(), '');
+  assert.equal(head.headers.get('content-type'), 'text/javascript; charset=utf-8');
+  assert.equal((await fetch(base + '/css/styles.css')).headers.get('content-type'), 'text/css; charset=utf-8');
+  assert.equal((await fetch(base + '/assets/logo.svg')).headers.get('content-type'), 'image/svg+xml');
+  assert.equal((await fetch(base + '/%E0%A4%A')).status, 400); // malformed percent-encoding
+  assert.equal((await fetch(base + '/api/books/%E0%A4%A')).status, 400);
+  assert.equal((await fetch(base + '/api')).status, 404);
+  assert.equal((await fetch(base + '/api/books/not%20an%20id')).status, 404);
+  assert.equal((await fetch(base + '/api/lookup/' + encodeURIComponent('9780140328721; DROP'))).status, 400);
+});
+
+test('storage failures do not leak filesystem paths to the client', async () => {
+  const directory = path.join(scratch, 'is-a-directory.json');
+  await fs.mkdir(directory);
+  const broken = createApp({ dataFile: directory });
+  const port = await listen(broken.server);
+  const originalError = console.error;
+  console.error = () => {}; // the full error is logged server-side; keep the test output clean
+  try {
+    const response = await fetch(`http://127.0.0.1:${port}/api/books`);
+    assert.equal(response.status, 500);
+    const { error } = await response.json();
+    assert.match(error, /Could not read is-a-directory\.json \(EISDIR\)/);
+    assert.ok(!error.includes(scratch), error);
+  } finally {
+    console.error = originalError;
+    broken.server.close();
+  }
+});
+
+test('the data folder and library file are private to the owner', { skip: process.platform === 'win32' }, async () => {
+  const dataFile = path.join(scratch, 'private', 'books.json');
+  const created = createApp({ dataFile });
+  await created.store.init();
+  await created.store.add({ isbn13: '9780140328721', title: 'Private' });
+  assert.equal((await fs.stat(path.dirname(dataFile))).mode & 0o077, 0);
+  assert.equal((await fs.stat(dataFile)).mode & 0o077, 0);
 });

@@ -7,7 +7,7 @@ const MARGIN = 20; // css px of room around the picture so edge handles stay rea
 const HANDLE_RADIUS = 11;
 const GRAB_RADIUS = 34; // how close a press must be to a corner to pick it up
 
-export const defaultOutline = (width, height) => {
+const defaultOutline = (width, height) => {
   const rectHeight = height * 0.72;
   const rectWidth = Math.min(width * 0.9, rectHeight * (2 / 3));
   const x = (width - rectWidth) / 2;

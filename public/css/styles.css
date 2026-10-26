@@ -311,7 +311,6 @@ button, input, select, textarea { font: inherit; color: inherit; }
   .dialog__body { padding: 6px 18px 18px; }
   .dialog__footer { padding: 12px 18px max(12px, env(safe-area-inset-bottom)); }
   .dialog__footer .btn { flex: 1; }
-  .btn__label { display: none; }
   .header-actions { width: 100%; flex-wrap: nowrap; gap: 6px; }
   .header-actions .btn:not(.btn--ghost) { flex: 1; padding: 0 10px; }
   .header-actions .btn--ghost { width: 42px; padding: 0; flex: none; }
@@ -409,15 +408,6 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
   .details { grid-template-columns: 1fr; }
   .details__cover { max-width: 180px; margin: 0 auto; }
 }
-
-/* ---------- Import ---------- */
-.import-summary { list-style: none; padding: 0; margin: 10px 0 16px; display: grid; gap: 6px; font-size: 0.95rem; }
-.import-summary li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 12px; background: var(--surface-2); border-radius: var(--radius-sm); }
-.import-summary strong { font-variant-numeric: tabular-nums; }
-.choices { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; }
-.choice { display: flex; gap: 10px; align-items: flex-start; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; }
-.choice:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
-.choice input { margin-top: 4px; accent-color: var(--accent); }
 
 /* ---------- Read checkbox ---------- */
 .form-field label.check { display: flex; align-items: center; gap: 10px; font-size: 0.95rem; cursor: pointer; margin: 0; }

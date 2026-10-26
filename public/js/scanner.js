@@ -57,7 +57,7 @@ function loadZXing() {
 
 /** Decode an EAN-13 barcode from a canvas with ZXing. Resolves to the digits, or "" if none found. */
 let zxingReader = null;
-export async function decodeCanvasWithZXing(canvas) {
+async function decodeCanvasWithZXing(canvas) {
   const ZXing = await loadZXing();
   if (!zxingReader) {
     zxingReader = new ZXing.MultiFormatReader();

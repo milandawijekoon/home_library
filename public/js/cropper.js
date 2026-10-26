@@ -2,7 +2,7 @@
 // drags the image and zooms until the frame lines up with the cover's edges.
 // Works with mouse, touch (drag + pinch), wheel, keyboard and a zoom slider.
 
-export const COVER_RATIO = 2 / 3; // width / height
+const COVER_RATIO = 2 / 3; // width / height
 export const MAX_ZOOM = 6;
 const OUTPUT_WIDTH = 400; // saved covers are at most 400 x 600
 const MAX_SOURCE_DIM = 2400; // big phone photos are shrunk on load to stay fast

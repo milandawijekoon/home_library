@@ -121,11 +121,11 @@ export function coverImage(source, { alt = '', className = '' } = {}) {
   return image;
 }
 
-export function authorsText(book) {
+function authorsText(book) {
   return asList(book.authors).join(', ');
 }
 
-export function formatDate(isoText) {
+function formatDate(isoText) {
   const timestamp = Date.parse(isoText);
   if (Number.isNaN(timestamp)) return '';
   return new Date(timestamp).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });

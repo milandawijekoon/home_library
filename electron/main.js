@@ -4,6 +4,7 @@ import { app, BrowserWindow, dialog, Menu, session, shell } from 'electron';
 import path from 'node:path';
 import { createApp } from '../server.js';
 import { initUpdater } from './updater.js';
+import { isAppUrl, isExternalWebUrl } from './guards.js';
 
 let mainWindow = null;
 let server = null;
@@ -56,27 +57,27 @@ function createWindow() {
   mainWindow.loadURL(origin);
   mainWindow.on('closed', () => { mainWindow = null; });
 
-  // Anything outside the app (book links, etc.) opens in the user's own browser.
+  // The window never leaves the app: web links open in the user's own browser, everything else is dropped.
+  const keepInApp = (event, url) => {
+    if (isAppUrl(url, origin)) return;
+    event.preventDefault();
+    if (isExternalWebUrl(url)) shell.openExternal(url);
+  };
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (/^https?:/.test(url)) shell.openExternal(url);
+    if (isExternalWebUrl(url)) shell.openExternal(url);
     return { action: 'deny' };
   });
-  mainWindow.webContents.on('will-navigate', (event, url) => {
-    if (!url.startsWith(origin)) {
-      event.preventDefault();
-      if (/^https?:/.test(url)) shell.openExternal(url);
-    }
-  });
+  mainWindow.webContents.on('will-navigate', keepInApp);
+  mainWindow.webContents.on('will-redirect', keepInApp);
 }
 
 // The barcode scanner needs the camera; allow it for our own page only.
 function allowCameraForApp(ses) {
-  const isApp = (url) => typeof url === 'string' && url.startsWith(origin);
   ses.setPermissionRequestHandler((wc, permission, callback, details) => {
-    callback(permission === 'media' && isApp(details.requestingUrl));
+    callback(permission === 'media' && isAppUrl(details.requestingUrl, origin));
   });
   ses.setPermissionCheckHandler((wc, permission, requestingOrigin) =>
-    permission === 'media' && isApp(requestingOrigin));
+    permission === 'media' && isAppUrl(requestingOrigin, origin));
 }
 
 app.whenReady().then(async () => {
@@ -99,6 +100,11 @@ app.whenReady().then(async () => {
   ]));
   createWindow();
   app.on('activate', () => { if (!mainWindow) createWindow(); });
+});
+
+// The app never uses <webview>; refuse to attach one even if markup tries to.
+app.on('web-contents-created', (event, contents) => {
+  contents.on('will-attach-webview', (attachEvent) => attachEvent.preventDefault());
 });
 
 app.on('window-all-closed', () => {

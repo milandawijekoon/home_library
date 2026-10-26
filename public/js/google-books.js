@@ -13,7 +13,7 @@ export class LookupError extends Error {
 }
 
 /** Google descriptions can contain HTML. Convert to plain text via an inert DOM (no scripts run). */
-export function htmlToText(html) {
+function htmlToText(html) {
   if (typeof html !== 'string' || !html) return '';
   const withBreaks = html.replace(/<\s*br\s*\/?>/gi, '\n').replace(/<\/(p|div|li|h[1-6])\s*>/gi, '\n');
   const doc = new DOMParser().parseFromString(withBreaks, 'text/html');

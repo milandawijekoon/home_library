@@ -195,7 +195,7 @@ $('#btn-retry').addEventListener('click', loadBooks);
 $('#btn-scan').addEventListener('click', openScanner);
 $('#btn-add').addEventListener('click', () => openBookForm({ mode: 'add', canLookup: true }));
 
-// The desktop app has no window of its own, so it needs a way to stop the local server.
+// Show the running app version next to the title.
 fetch('/api/health')
   .then((res) => res.json())
   .then((health) => {

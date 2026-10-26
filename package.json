@@ -9,13 +9,14 @@
   "scripts": {
     "start": "node server.js",
     "test": "node --test",
+    "test:coverage": "node --test --experimental-test-coverage --test-coverage-exclude='test/**' --test-coverage-exclude='node_modules/**'",
     "desktop": "electron .",
     "dist:mac": "electron-builder --mac --dir",
     "dist:mac:dmg": "electron-builder --mac --arm64 --x64",
     "dist:win": "electron-builder --win nsis"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19"
   },
   "dependencies": {
     "@zxing/library": "^0.21.3",
@@ -23,7 +24,8 @@
   },
   "devDependencies": {
     "electron": "^45.0.0",
-    "electron-builder": "^26.18.0"
+    "electron-builder": "^26.18.0",
+    "jsdom": "^29.1.1"
   },
   "author": "Shelfie",
   "build": {

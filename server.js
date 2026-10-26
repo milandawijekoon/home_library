@@ -281,7 +281,7 @@ function safeDecode(segment) {
   }
 }
 
-async function handleApi(request, response, pathname, searchParams, context) {
+async function handleApi(request, response, pathname, context) {
   const { store, options } = context;
   const method = request.method;
   const allow = (...methods) => {
@@ -350,6 +350,16 @@ function hostnameOf(hostHeader) {
   }
 }
 
+/** Requests without an Origin header (same-origin GETs, curl) pass; any other Origin must match Host. */
+function isSameOrigin(origin, host) {
+  if (origin === undefined) return true;
+  try {
+    return new URL(origin).host === host;
+  } catch {
+    return false; // "null", garbage
+  }
+}
+
 export function createApp(config = {}) {
   const options = {
     host: config.host ?? '127.0.0.1',
@@ -370,15 +380,13 @@ export function createApp(config = {}) {
       if (checkHost && !isLoopbackHost(hostnameOf(request.headers.host))) {
         throw new HttpError(403, 'Unexpected Host header');
       }
-      const origin = request.headers.origin;
-      if (origin && origin !== 'null' && new URL(origin).host !== request.headers.host) {
+      if (!isSameOrigin(request.headers.origin, request.headers.host)) {
         throw new HttpError(403, 'Cross-origin requests are not allowed');
       }
-      if (origin === 'null') throw new HttpError(403, 'Cross-origin requests are not allowed');
 
       const url = new URL(request.url, 'http://localhost');
       if (url.pathname === '/api' || url.pathname.startsWith('/api/')) {
-        await handleApi(request, response, url.pathname, url.searchParams, context);
+        await handleApi(request, response, url.pathname, context);
         return;
       }
       if (request.method !== 'GET' && request.method !== 'HEAD') {
@@ -393,6 +401,7 @@ export function createApp(config = {}) {
         status = err.status;
         message = err.message;
         extra = err.extra || {};
+        if (err.cause) console.error(`${message} ${err.cause.message}`);
       } else {
         console.error('Unexpected error:', err);
       }

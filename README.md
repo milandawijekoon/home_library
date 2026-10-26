@@ -72,6 +72,15 @@ The app checks for updates in the background and offers to restart when a new ve
 
 The only network requests are to look up a book's details by its ISBN (Google Books, with Open Library as a fallback) and to check for new app versions. Uninstalling the app does not delete your library; remove the folder above if you want it gone.
 
+## Development
+
+```bash
+npm install
+npm start        # run the app in a browser at http://localhost:3000
+npm run desktop  # run the desktop app
+npm test         # unit, API and browser-UI tests (Node 20.19 or newer)
+```
+
 ## License
 
 Shelfie is open source under the [MIT License](LICENSE).

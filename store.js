@@ -14,8 +14,8 @@ import { bookKey } from './public/js/isbn.js';
 import { sanitizeBook, cleanTimestamp, isValidId } from './validate.js';
 
 export class StoreError extends Error {
-  constructor(status, message, extra = {}) {
-    super(message);
+  constructor(status, message, extra = {}, options = {}) {
+    super(message, options);
     this.status = status;
     this.extra = extra;
   }
@@ -39,7 +39,8 @@ export class BookStore {
       text = await fs.readFile(this.file, 'utf8');
     } catch (err) {
       if (err.code === 'ENOENT') return { books: [] };
-      throw new StoreError(500, `Could not read ${path.basename(this.file)}: ${err.message}`);
+      // The OS message names absolute paths; clients only get the error code, the full error is logged.
+      throw new StoreError(500, `Could not read ${path.basename(this.file)} (${err.code ?? 'unknown error'}).`, {}, { cause: err });
     }
     if (text.trim() === '') return { books: [] };
     let data;
@@ -65,7 +66,7 @@ export class BookStore {
 
   async #write(books) {
     const directory = path.dirname(this.file);
-    await fs.mkdir(directory, { recursive: true });
+    await fs.mkdir(directory, { recursive: true, mode: 0o700 });
     const scratch = path.join(directory, `.${path.basename(this.file)}.${process.pid}.${randomUUID()}.tmp`);
     const json = JSON.stringify({ books }, null, 2) + '\n';
     try {
@@ -82,7 +83,7 @@ export class BookStore {
       await fs.rename(scratch, this.file);
     } catch (err) {
       await fs.rm(scratch, { force: true }).catch(() => {});
-      throw new StoreError(500, `Could not save ${path.basename(this.file)}: ${err.message}`);
+      throw new StoreError(500, `Could not save ${path.basename(this.file)} (${err.code ?? 'unknown error'}).`, {}, { cause: err });
     }
   }
 
@@ -172,5 +173,4 @@ export class BookStore {
       return removed;
     });
   }
-
 }
