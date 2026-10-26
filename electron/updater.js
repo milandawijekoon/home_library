@@ -12,6 +12,7 @@ const { autoUpdater } = electronUpdater;
 const CHECK_EVERY_MS = 4 * 60 * 60 * 1000;
 const CRITICAL_CHECK_EVERY_MS = 30 * 60 * 1000;
 const VERSION_RE = /^\d+\.\d+\.\d+$/;
+const CONFIG_URL = 'https://raw.githubusercontent.com/milandawijekoon/home_library/main/release-config/app-config.json';
 const DEFAULT_DOWNLOAD_PAGE = 'https://github.com/milandawijekoon/home_library/releases/latest';
 
 function compareVersions(a, b) {
@@ -72,7 +73,7 @@ export function initUpdater({ getWindow }) {
 
   async function fetchConfig() {
     try {
-      const res = await fetch(`${base}/app-config.json`, { signal: AbortSignal.timeout(8000), cache: 'no-store' });
+      const res = await fetch(process.env.SHELFIE_UPDATE_URL ? `${base}/app-config.json` : CONFIG_URL, { signal: AbortSignal.timeout(8000), cache: 'no-store' });
       if (!res.ok) return null;
       const body = await res.json();
       return VERSION_RE.test(body?.minimumVersion ?? '') ? body : null;

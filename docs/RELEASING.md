@@ -1,26 +1,18 @@
 # Releasing and updating
 
 Installers are hosted as assets on **GitHub Releases** (free for a public repo). Installed apps check
-`build.publish.url` in `package.json` (`https://downloads.milandawijekoon.com/home-library`), which a Cloudflare
-redirect points at the newest GitHub release, so the hosting can be moved later without touching installed apps.
+`build.publish.url` in `package.json` (`https://github.com/milandawijekoon/home_library/releases/latest/download`),
+which GitHub redirects to the files of the newest published release, so no extra hosting or DNS is needed.
+The optional critical-update file `release-config/app-config.json` is read straight from `main` on GitHub.
 Customers' books live in `~/Library/Application Support/HomeLibrary` (macOS) / `%APPDATA%\HomeLibrary` (Windows)
 and are never touched by an update.
 
-## One-time setup (Cloudflare, free)
-1. DNS: add an **A** record `downloads` -> `192.0.2.1`, **Proxied** (orange cloud). The IP is never used.
-2. Rules -> Redirect Rules -> Create rule, "Custom filter expression":
-   `(http.host eq "downloads.milandawijekoon.com" and starts_with(http.request.uri.path, "/home-library/") and http.request.uri.path ne "/home-library/app-config.json")`
-   Then: Dynamic redirect, status 302, expression
-   `concat("https://github.com/milandawijekoon/home_library/releases/latest/download/", substring(http.request.uri.path, 14))`
-3. A second rule for `/home-library/app-config.json` -> static redirect, 302, to
-   `https://raw.githubusercontent.com/milandawijekoon/home_library/main/release-config/app-config.json`
-4. Check: `curl -sIL https://downloads.milandawijekoon.com/home-library/latest.yml` ends in `200` once a release is published.
-
-Do this **before the first public release**: installed apps keep the URL they shipped with.
+Note: 1.0.0 and 1.1.0 shipped with a `downloads.milandawijekoon.com` address that was never set up, so those
+two versions cannot find updates. Install 1.1.1 or newer once by hand; from then on updates are detected.
 
 ## Normal release
 1. Bump `version` in `package.json` (semver, never reuse a number), commit, push.
-2. `git tag v1.0.1 && git push origin v1.0.1`
+2. `git tag v1.1.2 && git push origin v1.1.2`
 3. The **Release** workflow builds macOS and Windows installers and creates a **draft** GitHub release.
 4. Open the draft, test an installer, edit the notes, then **Publish**. Publishing makes every file and
    `latest*.yml` appear at once, so apps never see a half-uploaded release. Do not mark it as a pre-release
