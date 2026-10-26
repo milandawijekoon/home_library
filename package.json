@@ -65,7 +65,7 @@
       "extendInfo": {
         "NSCameraUsageDescription": "Shelfie Home Library uses the camera to scan book barcodes."
       },
-      "artifactName": "Shelfie-${version}-mac-${arch}.${ext}"
+      "artifactName": "Shelfie-mac-${arch}.${ext}"
     },
     "win": {
       "icon": "build/icon.png",
@@ -77,7 +77,7 @@
           ]
         }
       ],
-      "artifactName": "Shelfie-Setup-${version}-win-${arch}.${ext}"
+      "artifactName": "Shelfie-Setup-win-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,

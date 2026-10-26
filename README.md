@@ -23,13 +23,15 @@ A simple desktop app for cataloguing the books you own. Scan the barcode on a bo
 
 ## Download
 
-Latest version: **[v1.0.0](https://github.com/milandawijekoon/home_library/releases/latest)**
+[![Latest release](https://img.shields.io/github/v/release/milandawijekoon/home_library?label=latest%20version)](https://github.com/milandawijekoon/home_library/releases/latest)
+
+These links always download the newest published release.
 
 | Platform | Download |
 | --- | --- |
-| macOS, Apple silicon (M1 and newer) | [Shelfie-1.0.0-mac-arm64.dmg](https://github.com/milandawijekoon/home_library/releases/download/v1.0.0/Shelfie-1.0.0-mac-arm64.dmg) |
-| macOS, Intel | [Shelfie-1.0.0-mac-x64.dmg](https://github.com/milandawijekoon/home_library/releases/download/v1.0.0/Shelfie-1.0.0-mac-x64.dmg) |
-| Windows 64-bit | [Shelfie-Setup-1.0.0-win-x64.exe](https://github.com/milandawijekoon/home_library/releases/download/v1.0.0/Shelfie-Setup-1.0.0-win-x64.exe) |
+| macOS, Apple silicon (M1 and newer) | [Shelfie-mac-arm64.dmg](https://github.com/milandawijekoon/home_library/releases/latest/download/Shelfie-mac-arm64.dmg) |
+| macOS, Intel | [Shelfie-mac-x64.dmg](https://github.com/milandawijekoon/home_library/releases/latest/download/Shelfie-mac-x64.dmg) |
+| Windows 64-bit | [Shelfie-Setup-win-x64.exe](https://github.com/milandawijekoon/home_library/releases/latest/download/Shelfie-Setup-win-x64.exe) |
 
 Not sure which Mac you have? Open the Apple menu, then **About This Mac**: "Apple M…" means Apple silicon, "Intel" means Intel.
 
